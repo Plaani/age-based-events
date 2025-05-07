@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Users, Clock, Filter } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "@/components/ui/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-// Mock events data
+// Mock events data - now with family limitations and waiting list status
 const mockEvents = [
   {
     id: "1",
@@ -25,7 +28,12 @@ const mockEvents = [
     deadline: "2025-05-30",
     capacity: 30,
     spotsLeft: 12,
-    price: 75
+    price: 75,
+    familyLimit: {
+      type: "fixed", // "fixed", "proportional", "unlimited"
+      value: 2 // For fixed: maximum number of family members, for proportional: percentage of total capacity
+    },
+    waitingList: []
   },
   {
     id: "2",
@@ -40,7 +48,12 @@ const mockEvents = [
     deadline: "2025-05-15",
     capacity: 20,
     spotsLeft: 5,
-    price: 45
+    price: 45,
+    familyLimit: {
+      type: "proportional",
+      value: 25 // 25% of total capacity
+    },
+    waitingList: []
   },
   {
     id: "3",
@@ -55,7 +68,12 @@ const mockEvents = [
     deadline: "2025-05-25",
     capacity: 100,
     spotsLeft: 45,
-    price: 30
+    price: 30,
+    familyLimit: {
+      type: "unlimited",
+      value: null
+    },
+    waitingList: []
   },
   {
     id: "4",
@@ -70,7 +88,12 @@ const mockEvents = [
     deadline: "2025-06-01",
     capacity: 15,
     spotsLeft: 8,
-    price: 50
+    price: 50,
+    familyLimit: {
+      type: "fixed",
+      value: 3
+    },
+    waitingList: []
   },
   {
     id: "5",
@@ -84,19 +107,217 @@ const mockEvents = [
     registered: false,
     deadline: "2025-05-20",
     capacity: 24,
-    spotsLeft: 10,
-    price: 25
+    spotsLeft: 0, // This event is full to test waiting list
+    price: 25,
+    familyLimit: {
+      type: "fixed",
+      value: 1
+    },
+    waitingList: []
   }
 ];
+
+// Define types for events and registration
+interface FamilyLimit {
+  type: "fixed" | "proportional" | "unlimited";
+  value: number | null;
+}
+
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  ageRange: string;
+  category: string;
+  registered: boolean;
+  deadline: string;
+  capacity: number;
+  spotsLeft: number;
+  price: number;
+  familyLimit: FamilyLimit;
+  waitingList: WaitingListEntry[];
+}
+
+interface WaitingListEntry {
+  userId: string;
+  timestamp: string;
+  familyMembers?: number;
+}
+
+interface RegistrationDialogProps {
+  event: Event;
+  isOpen: boolean;
+  onClose: () => void;
+  onRegister: (eventId: string, includeFamily: boolean, familyMembers?: number) => void;
+}
+
+const RegistrationDialog: React.FC<RegistrationDialogProps> = ({ event, isOpen, onClose, onRegister }) => {
+  const [includeFamily, setIncludeFamily] = useState(false);
+  const [familyMembers, setFamilyMembers] = useState(1);
+  const { user } = useAuth();
+  
+  // Calculate maximum family members allowed based on family limit type
+  const getMaxFamilyMembers = () => {
+    if (!event.familyLimit || event.familyLimit.type === "unlimited") return 10; // Arbitrary high number
+    
+    if (event.familyLimit.type === "fixed") {
+      return event.familyLimit.value || 1;
+    }
+    
+    if (event.familyLimit.type === "proportional") {
+      const percentage = event.familyLimit.value || 0;
+      return Math.max(1, Math.floor((percentage / 100) * event.capacity));
+    }
+    
+    return 1;
+  };
+
+  const maxFamilyMembers = getMaxFamilyMembers();
+  const isFull = event.spotsLeft <= 0;
+  const familyOptions = Array.from({ length: maxFamilyMembers }, (_, i) => i + 1);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Register for {event.title}</DialogTitle>
+          <DialogDescription>
+            {isFull ? (
+              "This event is full. You will be added to the waiting list."
+            ) : (
+              `Complete your registration for this event. ${event.spotsLeft} spots remaining.`
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <h4 className="font-medium">Event Details</h4>
+            <p className="text-sm text-gray-500">
+              {formatDate(event.date)} • {event.time}<br />
+              Location: {event.location}<br />
+              Price: ${event.price}
+            </p>
+          </div>
+          
+          {user?.familyId && (
+            <div className="space-y-2">
+              <h4 className="font-medium">Family Registration</h4>
+              
+              {event.familyLimit.type !== "unlimited" ? (
+                <p className="text-sm text-gray-500">
+                  This event has a limit of {event.familyLimit.type === "fixed" 
+                    ? `${event.familyLimit.value} family members` 
+                    : `${event.familyLimit.value}% of total capacity (${maxFamilyMembers} members)`} per registration.
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  This event allows unlimited family members per registration.
+                </p>
+              )}
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="includeFamily"
+                  checked={includeFamily}
+                  onChange={() => setIncludeFamily(!includeFamily)}
+                  className="rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <label htmlFor="includeFamily" className="text-sm font-medium">
+                  Include family members
+                </label>
+              </div>
+              
+              {includeFamily && (
+                <div className="pt-2">
+                  <label className="text-sm font-medium">Number of family members (including you)</label>
+                  <Select 
+                    value={familyMembers.toString()} 
+                    onValueChange={(value) => setFamilyMembers(parseInt(value))}
+                  >
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue placeholder="Select number" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {familyOptions.map(num => (
+                        <SelectItem key={num} value={num.toString()}>
+                          {num} {num === 1 ? "person" : "people"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {isFull && (
+            <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200">
+              <p className="text-sm text-yellow-800">
+                You will be placed on a waiting list. We'll notify you if a spot becomes available.
+              </p>
+            </div>
+          )}
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button 
+            onClick={() => onRegister(event.id, includeFamily, includeFamily ? familyMembers : undefined)}
+            className="bg-primary text-white hover:bg-primary/90"
+          >
+            {isFull ? "Join Waiting List" : "Complete Registration"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const FamilyLimitPopover: React.FC<{ familyLimit: FamilyLimit }> = ({ familyLimit }) => {
+  let description;
+  
+  switch (familyLimit.type) {
+    case "fixed":
+      description = `Maximum ${familyLimit.value} family members allowed`;
+      break;
+    case "proportional":
+      description = `Limited to ${familyLimit.value}% of total capacity for family members`;
+      break;
+    case "unlimited":
+      description = "No limit on family participants";
+      break;
+  }
+  
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 p-0 hover:bg-transparent">
+          <Users className="h-4 w-4 text-gray-500" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 text-sm p-3">
+        <div className="font-medium">Family Participation Limit</div>
+        <p className="text-gray-600 mt-1">{description}</p>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 const Events: React.FC = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [ageFilter, setAgeFilter] = useState("All");
-
-  if (!user) return null;
-
+  const [events, setEvents] = useState<Event[]>(mockEvents);
+  const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  
+  // ... keep existing code (formatDate function) the same ...
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -107,7 +328,8 @@ const Events: React.FC = () => {
   };
 
   // Filter events based on search term, category, and age
-  const filteredEvents = mockEvents.filter(event => {
+  // ... keep existing code (filtering logic) the same ...
+  const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           event.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === "All" || event.category === categoryFilter;
@@ -124,6 +346,106 @@ const Events: React.FC = () => {
 
   const registeredEvents = filteredEvents.filter(event => event.registered);
   const availableEvents = filteredEvents.filter(event => !event.registered);
+
+  const openRegistrationDialog = (event: Event) => {
+    setSelectedEvent(event);
+    setRegistrationDialogOpen(true);
+  };
+
+  const closeRegistrationDialog = () => {
+    setRegistrationDialogOpen(false);
+    setSelectedEvent(null);
+  };
+
+  const handleRegister = (eventId: string, includeFamily: boolean, familyMembers?: number) => {
+    setEvents(currentEvents => {
+      return currentEvents.map(event => {
+        if (event.id === eventId) {
+          // Calculate how many spots to deduct
+          const spotsToDeduct = includeFamily && familyMembers ? familyMembers : 1;
+          
+          // Check if event is full
+          const isFull = event.spotsLeft <= 0;
+          
+          if (isFull) {
+            // Add to waiting list
+            const waitingListEntry: WaitingListEntry = {
+              userId: user?.id || 'unknown',
+              timestamp: new Date().toISOString(),
+              familyMembers: includeFamily && familyMembers ? familyMembers : 1
+            };
+            
+            toast({
+              title: "Added to waiting list",
+              description: `You've been added to the waiting list for ${event.title}.`,
+            });
+            
+            return {
+              ...event,
+              waitingList: [...event.waitingList, waitingListEntry]
+            };
+          } else {
+            // Regular registration
+            const newSpotsLeft = Math.max(0, event.spotsLeft - spotsToDeduct);
+            
+            toast({
+              title: "Registration successful",
+              description: `You've successfully registered for ${event.title}${includeFamily ? ` with ${familyMembers! - 1} family members` : ''}.`,
+            });
+            
+            return {
+              ...event,
+              registered: true,
+              spotsLeft: newSpotsLeft
+            };
+          }
+        }
+        return event;
+      });
+    });
+    
+    closeRegistrationDialog();
+  };
+  
+  const handleUnregister = (eventId: string) => {
+    setEvents(currentEvents => {
+      return currentEvents.map(event => {
+        if (event.id === eventId) {
+          // Get the current date to check against deadlines
+          const currentDate = new Date();
+          const deadlineDate = new Date(event.deadline);
+          
+          // Check if unregistration is still allowed
+          if (currentDate > deadlineDate) {
+            toast({
+              variant: "destructive",
+              title: "Cannot unregister",
+              description: `The unregistration deadline for this event has passed (${formatDate(event.deadline)}).`,
+            });
+            return event;
+          }
+          
+          // Restore spots when unregistering
+          // In a real app, we would know exactly how many spots to restore based on the user's registration
+          const spotsToRestore = 1; // Simplified for this example
+          
+          toast({
+            title: "Unregistered from event",
+            description: `You have successfully unregistered from ${event.title}.`,
+          });
+          
+          return {
+            ...event,
+            registered: false,
+            spotsLeft: event.spotsLeft + spotsToRestore
+          };
+        }
+        return event;
+      });
+    });
+  };
+
+  if (!user) return null;
 
   return (
     <MainLayout>
@@ -212,15 +534,33 @@ const Events: React.FC = () => {
                           <span className="text-gray-600">${event.price}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
+                          <span className="font-medium">Family Limit:</span>
+                          <div className="flex items-center">
+                            <span className="text-gray-600 mr-1">
+                              {event.familyLimit.type === "fixed" 
+                                ? `${event.familyLimit.value} members`
+                                : event.familyLimit.type === "proportional"
+                                  ? `${event.familyLimit.value}% of capacity`
+                                  : "Unlimited"}
+                            </span>
+                            <FamilyLimitPopover familyLimit={event.familyLimit} />
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
                           <span className="font-medium">Availability:</span>
                           <Badge variant={event.spotsLeft < 5 ? "destructive" : "outline"}>
-                            {event.spotsLeft} spots left
+                            {event.spotsLeft === 0 ? "Full - Waiting List" : `${event.spotsLeft} spots left`}
                           </Badge>
                         </div>
                       </div>
                     </CardContent>
                     <CardFooter className="border-t pt-4">
-                      <Button className="w-full">Register</Button>
+                      <Button 
+                        className="w-full"
+                        onClick={() => openRegistrationDialog(event)}
+                      >
+                        {event.spotsLeft === 0 ? "Join Waiting List" : "Register"}
+                      </Button>
                     </CardFooter>
                   </Card>
                 ))}
@@ -262,11 +602,20 @@ const Events: React.FC = () => {
                           <span className="font-medium">Age Range:</span>
                           <span className="text-gray-600">{event.ageRange}</span>
                         </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-medium">Unregister By:</span>
+                          <span className="text-gray-600">{formatDate(event.deadline)}</span>
+                        </div>
                       </div>
                     </CardContent>
                     <CardFooter className="border-t pt-4 flex justify-between">
                       <Button variant="outline">View Details</Button>
-                      <Button variant="destructive">Unregister</Button>
+                      <Button 
+                        variant="destructive"
+                        onClick={() => handleUnregister(event.id)}
+                      >
+                        Unregister
+                      </Button>
                     </CardFooter>
                   </Card>
                 ))}
@@ -285,6 +634,16 @@ const Events: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Registration Dialog */}
+      {selectedEvent && (
+        <RegistrationDialog
+          event={selectedEvent}
+          isOpen={registrationDialogOpen}
+          onClose={closeRegistrationDialog}
+          onRegister={handleRegister}
+        />
+      )}
     </MainLayout>
   );
 };
