@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,10 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ShieldCheck, UserCheck, UserX, Calendar, AlertCircle } from "lucide-react";
+import { ShieldCheck, UserCheck, UserX, Calendar, AlertCircle, CalendarPlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { format } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 // Mock data
 const pendingUsers = [
@@ -69,6 +77,19 @@ const invalidMemberships = [
   }
 ];
 
+// Event creation form schema
+const eventFormSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  date: z.date(),
+  registrationDeadline: z.date(),
+  unregistrationDeadline: z.date(),
+  maxParticipants: z.coerce.number().min(1, "At least 1 participant is required"),
+  location: z.string().min(3, "Location must be at least 3 characters"),
+});
+
+type EventFormValues = z.infer<typeof eventFormSchema>;
+
 const Admin: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -77,6 +98,19 @@ const Admin: React.FC = () => {
   const [selectedMemberships, setSelectedMemberships] = useState<string[]>([]);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | "revoke">("approve");
+  const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
+  const [events, setEvents] = useState<EventFormValues[]>([]);
+  
+  // Event form
+  const form = useForm<EventFormValues>({
+    resolver: zodResolver(eventFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      location: "",
+      maxParticipants: 20,
+    }
+  });
   
   // Redirect non-admin users
   React.useEffect(() => {
@@ -167,13 +201,24 @@ const Admin: React.FC = () => {
     setSelectedUsers([]);
     setSelectedMemberships([]);
   };
+  
+  // Event creation handler
+  const onSubmitEvent = (data: EventFormValues) => {
+    setEvents((prev) => [...prev, data]);
+    toast({
+      title: "Event Created",
+      description: `${data.title} has been created successfully.`,
+    });
+    setCreateEventDialogOpen(false);
+    form.reset();
+  };
 
   return (
     <MainLayout>
       <div className="space-y-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-8 w-8 text-brand-600" />
+            <ShieldCheck className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
           </div>
           <p className="text-gray-500">
@@ -415,17 +460,72 @@ const Admin: React.FC = () => {
           </TabsContent>
           
           <TabsContent value="events">
-            <Card className="py-12">
-              <div className="flex flex-col items-center justify-center text-center px-4">
-                <div className="rounded-full bg-gray-100 p-3 mb-4">
-                  <Calendar className="h-6 w-6 text-gray-500" />
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <CardTitle>Event Management</CardTitle>
+                    <CardDescription>
+                      Create and manage events, set registration deadlines, and monitor bookings
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => setCreateEventDialogOpen(true)}>
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                    Create Event
+                  </Button>
                 </div>
-                <h3 className="text-lg font-medium">Event Management</h3>
-                <p className="text-sm text-gray-500 mt-2 max-w-md">
-                  Create and manage events, set registration deadlines, and monitor bookings.
-                </p>
-                <Button className="mt-6">Create Event</Button>
-              </div>
+              </CardHeader>
+              <CardContent>
+                {events.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {events.map((event, index) => (
+                      <Card key={index} className="event-card">
+                        <CardHeader className="pb-2">
+                          <CardTitle>{event.title}</CardTitle>
+                          <CardDescription>{format(event.date, "PPP")}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="pb-2">
+                          <p className="text-sm text-gray-500 line-clamp-2">{event.description}</p>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <p className="font-medium">Location</p>
+                              <p className="text-gray-500">{event.location}</p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Max Participants</p>
+                              <p className="text-gray-500">{event.maxParticipants}</p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Registration Deadline</p>
+                              <p className="text-gray-500">{format(event.registrationDeadline, "PP")}</p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Unregistration Deadline</p>
+                              <p className="text-gray-500">{format(event.unregistrationDeadline, "PP")}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <div className="flex justify-end w-full gap-2">
+                            <Button variant="outline" size="sm">Edit</Button>
+                            <Button variant="destructive" size="sm">Delete</Button>
+                          </div>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center px-4 py-12">
+                    <div className="rounded-full bg-secondary p-3 mb-4">
+                      <Calendar className="h-6 w-6 text-secondary-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium">No Events Created</h3>
+                    <p className="text-sm text-gray-500 mt-2 max-w-md">
+                      Create your first event by clicking the "Create Event" button above.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
@@ -458,6 +558,204 @@ const Admin: React.FC = () => {
               Confirm
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Event Dialog */}
+      <Dialog open={createEventDialogOpen} onOpenChange={setCreateEventDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Create New Event</DialogTitle>
+            <DialogDescription>
+              Fill in the event details. All fields are required.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmitEvent)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Event Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter event title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter event description" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Event Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarComponent className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Event location" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="registrationDeadline"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Registration Deadline</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarComponent className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="unregistrationDeadline"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Unregistration Deadline</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarComponent className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="maxParticipants"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maximum Participants</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={1} {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Maximum number of people who can attend this event
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setCreateEventDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Create Event</Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </MainLayout>
