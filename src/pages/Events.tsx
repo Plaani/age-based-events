@@ -9,12 +9,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, Users, Clock, Filter } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-// Mock events data - now with family limitations and waiting list status
-const mockEvents = [
+// Define types for events and registration
+interface FamilyLimit {
+  type: "fixed" | "proportional" | "unlimited";
+  value: number | null;
+}
+
+interface WaitingListEntry {
+  userId: string;
+  timestamp: string;
+  familyMembers?: number;
+}
+
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  ageRange: string;
+  category: string;
+  registered: boolean;
+  deadline: string;
+  capacity: number;
+  spotsLeft: number;
+  price: number;
+  familyLimit: FamilyLimit;
+  waitingList: WaitingListEntry[];
+}
+
+// Mock events data with properly typed family limitations and waiting list status
+const mockEvents: Event[] = [
   {
     id: "1",
     title: "Summer Sports Camp",
@@ -30,8 +60,8 @@ const mockEvents = [
     spotsLeft: 12,
     price: 75,
     familyLimit: {
-      type: "fixed", // "fixed", "proportional", "unlimited"
-      value: 2 // For fixed: maximum number of family members, for proportional: percentage of total capacity
+      type: "fixed",
+      value: 2
     },
     waitingList: []
   },
@@ -51,7 +81,7 @@ const mockEvents = [
     price: 45,
     familyLimit: {
       type: "proportional",
-      value: 25 // 25% of total capacity
+      value: 25
     },
     waitingList: []
   },
@@ -107,7 +137,7 @@ const mockEvents = [
     registered: false,
     deadline: "2025-05-20",
     capacity: 24,
-    spotsLeft: 0, // This event is full to test waiting list
+    spotsLeft: 0,
     price: 25,
     familyLimit: {
       type: "fixed",
@@ -116,36 +146,6 @@ const mockEvents = [
     waitingList: []
   }
 ];
-
-// Define types for events and registration
-interface FamilyLimit {
-  type: "fixed" | "proportional" | "unlimited";
-  value: number | null;
-}
-
-interface Event {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-  location: string;
-  ageRange: string;
-  category: string;
-  registered: boolean;
-  deadline: string;
-  capacity: number;
-  spotsLeft: number;
-  price: number;
-  familyLimit: FamilyLimit;
-  waitingList: WaitingListEntry[];
-}
-
-interface WaitingListEntry {
-  userId: string;
-  timestamp: string;
-  familyMembers?: number;
-}
 
 interface RegistrationDialogProps {
   event: Event;
@@ -178,6 +178,16 @@ const RegistrationDialog: React.FC<RegistrationDialogProps> = ({ event, isOpen, 
   const maxFamilyMembers = getMaxFamilyMembers();
   const isFull = event.spotsLeft <= 0;
   const familyOptions = Array.from({ length: maxFamilyMembers }, (_, i) => i + 1);
+  
+  // Format date function moved inside component
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -317,7 +327,7 @@ const Events: React.FC = () => {
   const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   
-  // ... keep existing code (formatDate function) the same ...
+  // Format date function for the main component
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -328,7 +338,6 @@ const Events: React.FC = () => {
   };
 
   // Filter events based on search term, category, and age
-  // ... keep existing code (filtering logic) the same ...
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           event.description.toLowerCase().includes(searchTerm.toLowerCase());
