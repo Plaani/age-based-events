@@ -3,7 +3,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ShieldCheck, AlertCircle, CalendarPlus } from "lucide-react";
+import { ShieldCheck, AlertCircle, CalendarPlus, UserCheck, UserX } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
@@ -18,6 +18,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import UserManagement from "@/components/admin/UserManagement";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 // Mock data
 const pendingUsers = [
@@ -519,7 +523,7 @@ const Admin: React.FC = () => {
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center px-4 py-12">
                     <div className="rounded-full bg-secondary p-3 mb-4">
-                      <Calendar className="h-6 w-6 text-secondary-foreground" />
+                      <CalendarComponent className="h-6 w-6 text-secondary-foreground" />
                     </div>
                     <h3 className="text-lg font-medium">No Events Created</h3>
                     <p className="text-sm text-gray-500 mt-2 max-w-md">
