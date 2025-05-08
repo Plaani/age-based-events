@@ -1,17 +1,12 @@
 import React, { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ShieldCheck, UserCheck, UserX, Calendar, AlertCircle, CalendarPlus } from "lucide-react";
+import { ShieldCheck, AlertCircle, CalendarPlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +16,8 @@ import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import UserManagement from "@/components/admin/UserManagement";
 
 // Mock data
 const pendingUsers = [
@@ -226,12 +223,17 @@ const Admin: React.FC = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="pending-users" className="w-full">
+        <Tabs defaultValue="all-users" className="w-full">
           <TabsList className="mb-6">
+            <TabsTrigger value="all-users">All Users</TabsTrigger>
             <TabsTrigger value="pending-users">Pending Approvals</TabsTrigger>
             <TabsTrigger value="memberships">Invalid Memberships</TabsTrigger>
             <TabsTrigger value="events">Event Management</TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="all-users">
+            <UserManagement />
+          </TabsContent>
           
           <TabsContent value="pending-users">
             <Card>

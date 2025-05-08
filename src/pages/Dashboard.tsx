@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, Clock, Users, CheckCircle2, XCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import EventCalendar from "@/components/dashboard/EventCalendar";
 
 // Mock data
 const upcomingEvents = [
@@ -128,50 +129,9 @@ const Dashboard: React.FC = () => {
           </Card>
         </div>
 
+        {/* Event Calendar */}
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Upcoming Events */}
-          <Card className="col-span-1">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5" />
-                <span>Upcoming Events</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {upcomingEvents.length > 0 ? (
-                  upcomingEvents.map((event) => (
-                    <div key={event.id} className="flex items-center justify-between border-b pb-3 last:border-0">
-                      <div className="space-y-1">
-                        <div className="font-medium">{event.title}</div>
-                        <div className="text-sm text-gray-500">
-                          {formatDate(event.date)} at {event.time}
-                        </div>
-                        <div className="flex gap-2 items-center mt-1">
-                          <Badge variant={event.registered ? "default" : "outline"}>
-                            {event.registered ? "Registered" : "Not Registered"}
-                          </Badge>
-                          <span className="text-xs text-gray-500">Age: {event.ageRange}</span>
-                        </div>
-                      </div>
-                      <Button size="sm">
-                        {event.registered ? "View Details" : "Register"}
-                      </Button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-6 text-gray-500">
-                    No upcoming events
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="border-t pt-4">
-              <Button variant="outline" className="w-full" asChild>
-                <Link to="/events">View All Events</Link>
-              </Button>
-            </CardFooter>
-          </Card>
+          <EventCalendar events={upcomingEvents} />
 
           {/* Family Members */}
           <Card className="col-span-1">
@@ -211,6 +171,50 @@ const Dashboard: React.FC = () => {
             </CardFooter>
           </Card>
         </div>
+
+        {/* Upcoming Events */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5" />
+              <span>Upcoming Events</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {upcomingEvents.length > 0 ? (
+                upcomingEvents.map((event) => (
+                  <div key={event.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                    <div className="space-y-1">
+                      <div className="font-medium">{event.title}</div>
+                      <div className="text-sm text-gray-500">
+                        {formatDate(event.date)} at {event.time}
+                      </div>
+                      <div className="flex gap-2 items-center mt-1">
+                        <Badge variant={event.registered ? "default" : "outline"}>
+                          {event.registered ? "Registered" : "Not Registered"}
+                        </Badge>
+                        <span className="text-xs text-gray-500">Age: {event.ageRange}</span>
+                      </div>
+                    </div>
+                    <Button size="sm">
+                      {event.registered ? "View Details" : "Register"}
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  No upcoming events
+                </div>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="border-t pt-4">
+            <Button variant="outline" className="w-full" asChild>
+              <Link to="/events">View All Events</Link>
+            </Button>
+          </CardFooter>
+        </Card>
 
         {/* Deadlines */}
         <Card>
