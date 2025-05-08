@@ -75,7 +75,7 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
             mode="default"
             showOutsideDays={true}
             components={{
-              Day: ({ date, selected, disabled, ...props }) => renderDay(date as Date)
+              Day: ({ date }) => renderDay(date as Date)
             }}
             className="rounded-md border mx-auto"
           />
