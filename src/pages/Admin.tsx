@@ -3,7 +3,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ShieldCheck, AlertCircle, CalendarPlus, UserCheck, UserX } from "lucide-react";
+import { ShieldCheck, AlertCircle, CalendarPlus, UserCheck, UserX, Calendar, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
@@ -22,6 +22,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Mock data
 const pendingUsers = [
@@ -78,6 +91,50 @@ const invalidMemberships = [
   }
 ];
 
+// Mock events data
+const mockEvents = [
+  {
+    id: "1",
+    title: "Summer Picnic",
+    date: new Date(2025, 5, 15),
+    location: "Central Park",
+    registrationDeadline: new Date(2025, 5, 10),
+    unregistrationDeadline: new Date(2025, 5, 12),
+    maxParticipants: 50,
+    description: "Annual summer picnic for all members and their families",
+    createdBy: "Admin",
+    participants: [
+      { id: "1", name: "Robert Wilson", nationalId: "6705142345" },
+      { id: "2", name: "Linda Johnson", nationalId: "7809124567" },
+    ]
+  },
+  {
+    id: "2",
+    title: "Board Meeting",
+    date: new Date(2025, 5, 20),
+    location: "Conference Room A",
+    registrationDeadline: new Date(2025, 5, 18),
+    unregistrationDeadline: new Date(2025, 5, 19),
+    maxParticipants: 15,
+    description: "Quarterly board meeting to discuss finances and upcoming events",
+    createdBy: "Michael Brown",
+    participants: [
+      { id: "3", name: "Michael Brown", nationalId: "9102056789" },
+      { id: "1", name: "Robert Wilson", nationalId: "6705142345" },
+    ]
+  }
+];
+
+// Mock members data
+const mockMembers = [
+  { id: "1", name: "Robert Wilson", nationalId: "6705142345" },
+  { id: "2", name: "Linda Johnson", nationalId: "7809124567" },
+  { id: "3", name: "Michael Brown", nationalId: "9102056789" },
+  { id: "4", name: "Sarah Davis", nationalId: "8501234567" },
+  { id: "5", name: "Thomas Miller", nationalId: "9003123456" },
+  { id: "6", name: "Emma Clark", nationalId: "8712090123" }
+];
+
 // Event creation form schema
 const eventFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -101,6 +158,11 @@ const Admin: React.FC = () => {
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | "revoke">("approve");
   const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
   const [events, setEvents] = useState<EventFormValues[]>([]);
+  const [allEvents, setAllEvents] = useState(mockEvents);
+  const [participantsDialogOpen, setParticipantsDialogOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [availableMembers, setAvailableMembers] = useState<any[]>([]);
+  const [selectedMember, setSelectedMember] = useState("");
   
   // Event form
   const form = useForm<EventFormValues>({
@@ -137,6 +199,12 @@ const Admin: React.FC = () => {
   const filteredInvalidMemberships = invalidMemberships.filter(member => 
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     member.nationalId.includes(searchTerm)
+  );
+
+  const filteredEvents = allEvents.filter(event => 
+    event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.createdBy.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSelectUser = (userId: string) => {
@@ -205,13 +273,101 @@ const Admin: React.FC = () => {
   
   // Event creation handler
   const onSubmitEvent = (data: EventFormValues) => {
+    // Create a new event with default values for the new fields
+    const newEvent = {
+      ...data,
+      id: `${allEvents.length + 1}`,
+      createdBy: user.name || "Admin",
+      participants: []
+    };
+    
+    // Add to both event lists
     setEvents((prev) => [...prev, data]);
+    setAllEvents((prev) => [...prev, newEvent]);
+    
     toast({
       title: "Event Created",
       description: `${data.title} has been created successfully.`,
     });
     setCreateEventDialogOpen(false);
     form.reset();
+  };
+
+  const openParticipantsDialog = (event: any) => {
+    setSelectedEvent(event);
+    
+    // Filter out members already registered for this event
+    const eventParticipantIds = event.participants.map((p: any) => p.id);
+    const filteredMembers = mockMembers.filter(member => !eventParticipantIds.includes(member.id));
+    
+    setAvailableMembers(filteredMembers);
+    setParticipantsDialogOpen(true);
+  };
+
+  const addParticipant = () => {
+    if (!selectedMember) return;
+    
+    const memberToAdd = mockMembers.find(m => m.id === selectedMember);
+    if (!memberToAdd) return;
+    
+    // Add participant to event
+    const updatedEvents = allEvents.map(event => {
+      if (event.id === selectedEvent.id) {
+        return {
+          ...event,
+          participants: [...event.participants, memberToAdd]
+        };
+      }
+      return event;
+    });
+    
+    setAllEvents(updatedEvents);
+    
+    // Update selected event and available members
+    const updatedEvent = updatedEvents.find(e => e.id === selectedEvent.id)!;
+    setSelectedEvent(updatedEvent);
+    
+    const updatedAvailableMembers = availableMembers.filter(m => m.id !== selectedMember);
+    setAvailableMembers(updatedAvailableMembers);
+    
+    setSelectedMember("");
+    
+    toast({
+      title: "Participant Added",
+      description: `${memberToAdd.name} has been added to the event.`,
+    });
+  };
+
+  const removeParticipant = (participantId: string) => {
+    const participantToRemove = selectedEvent.participants.find((p: any) => p.id === participantId);
+    
+    // Remove participant from event
+    const updatedEvents = allEvents.map(event => {
+      if (event.id === selectedEvent.id) {
+        return {
+          ...event,
+          participants: event.participants.filter((p: any) => p.id !== participantId)
+        };
+      }
+      return event;
+    });
+    
+    setAllEvents(updatedEvents);
+    
+    // Update selected event
+    const updatedEvent = updatedEvents.find(e => e.id === selectedEvent.id)!;
+    setSelectedEvent(updatedEvent);
+    
+    // Add back to available members
+    const memberToAdd = mockMembers.find(m => m.id === participantId);
+    if (memberToAdd) {
+      setAvailableMembers([...availableMembers, memberToAdd]);
+    }
+    
+    toast({
+      title: "Participant Removed",
+      description: `${participantToRemove.name} has been removed from the event.`,
+    });
   };
 
   return (
@@ -481,49 +637,116 @@ const Admin: React.FC = () => {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                {events.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {events.map((event, index) => (
-                      <Card key={index} className="event-card">
-                        <CardHeader className="pb-2">
-                          <CardTitle>{event.title}</CardTitle>
-                          <CardDescription>{format(event.date, "PPP")}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pb-2">
-                          <p className="text-sm text-gray-500 line-clamp-2">{event.description}</p>
-                          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <p className="font-medium">Location</p>
-                              <p className="text-gray-500">{event.location}</p>
+              <CardContent className="space-y-6">
+                <div className="mb-4">
+                  <Input
+                    placeholder="Search events by title, location, or creator..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                
+                {filteredEvents.length > 0 ? (
+                  <div className="space-y-6">
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Event</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Location</TableHead>
+                            <TableHead>Created By</TableHead>
+                            <TableHead>Participants</TableHead>
+                            <TableHead>Capacity</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredEvents.map((event) => (
+                            <TableRow key={event.id}>
+                              <TableCell className="font-medium">{event.title}</TableCell>
+                              <TableCell>{format(event.date, 'MMM d, yyyy')}</TableCell>
+                              <TableCell>{event.location}</TableCell>
+                              <TableCell>{event.createdBy}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center">
+                                  <span className="mr-2">{event.participants.length}</span>
+                                  <Badge variant={event.participants.length >= event.maxParticipants ? "destructive" : "outline"}>
+                                    {event.participants.length >= event.maxParticipants ? "Full" : "Open"}
+                                  </Badge>
+                                </div>
+                              </TableCell>
+                              <TableCell>{event.participants.length}/{event.maxParticipants}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => openParticipantsDialog(event)}
+                                  >
+                                    <Users className="mr-1 h-4 w-4" />
+                                    Participants
+                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button size="sm" variant="ghost">⋯</Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                      <DropdownMenuItem>View Details</DropdownMenuItem>
+                                      <DropdownMenuItem>Edit Event</DropdownMenuItem>
+                                      <DropdownMenuItem className="text-red-600">Cancel Event</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                      {events.map((event, index) => (
+                        <Card key={index} className="event-card">
+                          <CardHeader className="pb-2">
+                            <CardTitle>{event.title}</CardTitle>
+                            <CardDescription>{format(event.date, "PPP")}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="pb-2">
+                            <p className="text-sm text-gray-500 line-clamp-2">{event.description}</p>
+                            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <p className="font-medium">Location</p>
+                                <p className="text-gray-500">{event.location}</p>
+                              </div>
+                              <div>
+                                <p className="font-medium">Max Participants</p>
+                                <p className="text-gray-500">{event.maxParticipants}</p>
+                              </div>
+                              <div>
+                                <p className="font-medium">Registration Deadline</p>
+                                <p className="text-gray-500">{format(event.registrationDeadline, "PP")}</p>
+                              </div>
+                              <div>
+                                <p className="font-medium">Unregistration Deadline</p>
+                                <p className="text-gray-500">{format(event.unregistrationDeadline, "PP")}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium">Max Participants</p>
-                              <p className="text-gray-500">{event.maxParticipants}</p>
+                          </CardContent>
+                          <CardFooter>
+                            <div className="flex justify-end w-full gap-2">
+                              <Button variant="outline" size="sm">Edit</Button>
+                              <Button variant="destructive" size="sm">Delete</Button>
                             </div>
-                            <div>
-                              <p className="font-medium">Registration Deadline</p>
-                              <p className="text-gray-500">{format(event.registrationDeadline, "PP")}</p>
-                            </div>
-                            <div>
-                              <p className="font-medium">Unregistration Deadline</p>
-                              <p className="text-gray-500">{format(event.unregistrationDeadline, "PP")}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                        <CardFooter>
-                          <div className="flex justify-end w-full gap-2">
-                            <Button variant="outline" size="sm">Edit</Button>
-                            <Button variant="destructive" size="sm">Delete</Button>
-                          </div>
-                        </CardFooter>
-                      </Card>
-                    ))}
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center px-4 py-12">
                     <div className="rounded-full bg-secondary p-3 mb-4">
-                      <CalendarComponent className="h-6 w-6 text-secondary-foreground" />
+                      <Calendar className="h-6 w-6 text-secondary-foreground" />
                     </div>
                     <h3 className="text-lg font-medium">No Events Created</h3>
                     <p className="text-sm text-gray-500 mt-2 max-w-md">
@@ -762,6 +985,101 @@ const Admin: React.FC = () => {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Manage Participants Dialog */}
+      <Dialog open={participantsDialogOpen} onOpenChange={setParticipantsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Participants</DialogTitle>
+            <DialogDescription>
+              {selectedEvent && (
+                <span>
+                  {selectedEvent.title} - {format(selectedEvent.date, 'MMM d, yyyy')} ({selectedEvent.participants.length}/{selectedEvent.maxParticipants} participants)
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedEvent && (
+            <div className="space-y-4">
+              <div className="flex flex-col space-y-2">
+                <h3 className="text-sm font-medium">Add Participant</h3>
+                <div className="flex gap-2">
+                  <Select value={selectedMember} onValueChange={setSelectedMember}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select a member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.length > 0 ? (
+                        availableMembers.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem disabled value="none">No available members</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={addParticipant} 
+                    disabled={!selectedMember || selectedEvent.participants.length >= selectedEvent.maxParticipants}
+                  >
+                    Add
+                  </Button>
+                </div>
+                {selectedEvent.participants.length >= selectedEvent.maxParticipants && (
+                  <p className="text-sm text-red-500">Maximum capacity reached</p>
+                )}
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-2">Current Participants</h3>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>National ID</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedEvent.participants.length > 0 ? (
+                        selectedEvent.participants.map((participant: any) => (
+                          <TableRow key={participant.id}>
+                            <TableCell className="font-medium">{participant.name}</TableCell>
+                            <TableCell>{participant.nationalId}</TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="destructive" 
+                                size="sm" 
+                                onClick={() => removeParticipant(participant.id)}
+                              >
+                                <UserX className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-4">
+                            No participants yet
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setParticipantsDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </MainLayout>
