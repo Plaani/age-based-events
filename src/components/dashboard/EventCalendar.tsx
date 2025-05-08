@@ -43,7 +43,12 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
     const eventsOnDay = eventDates[dateStr] || [];
     
     if (eventsOnDay.length === 0) {
-      return undefined;
+      // Gray color for dates with no events
+      return (
+        <div className="relative w-full h-full flex items-center justify-center">
+          <span className="text-gray-500">{format(day, 'd')}</span>
+        </div>
+      );
     }
     
     const hasRegisteredEvent = eventsOnDay.some(event => event.registered);
@@ -88,6 +93,10 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-accent/50"></div>
             <span>Upcoming Events</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-gray-200"></div>
+            <span>No Events</span>
           </div>
         </div>
       </CardContent>
