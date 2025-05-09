@@ -170,6 +170,21 @@ const eventFormSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
+// Define the event type based on our mock data structure
+type EventType = {
+  id: string;
+  title: string;
+  date: Date;
+  location: string;
+  registrationDeadline: Date;
+  unregistrationDeadline: Date;
+  maxParticipants: number;
+  description: string;
+  createdBy: string;
+  targetAge: string;
+  participants: { id: string; name: string; nationalId: string }[];
+};
+
 const Admin: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -180,9 +195,9 @@ const Admin: React.FC = () => {
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | "revoke">("approve");
   const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
   const [events, setEvents] = useState<EventFormValues[]>([]);
-  const [allEvents, setAllEvents] = useState(mockEvents);
+  const [allEvents, setAllEvents] = useState<EventType[]>(mockEvents);
   const [participantsDialogOpen, setParticipantsDialogOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
   const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -318,11 +333,18 @@ const Admin: React.FC = () => {
   
   // Event creation handler
   const onSubmitEvent = (data: EventFormValues) => {
-    // Create a new event with default values for the new fields
-    const newEvent = {
-      ...data,
+    // Create a new event with required fields explicitly defined
+    const newEvent: EventType = {
       id: `${allEvents.length + 1}`,
-      createdBy: user.firstName + " " + user.lastName,
+      title: data.title,
+      date: data.date,
+      location: data.location,
+      registrationDeadline: data.registrationDeadline,
+      unregistrationDeadline: data.unregistrationDeadline,
+      maxParticipants: data.maxParticipants,
+      description: data.description,
+      targetAge: data.targetAge,
+      createdBy: user?.firstName + " " + user?.lastName || "Admin",
       participants: []
     };
     
