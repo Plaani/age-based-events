@@ -12,13 +12,20 @@ interface Event {
   title: string;
   date: string;
   registered: boolean;
+  targetAge?: string;
 }
 
 interface EventCalendarProps {
   events: Event[];
+  onDateSelect?: (date: Date) => void;
+  isInteractive?: boolean;
 }
 
-const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
+const EventCalendar: React.FC<EventCalendarProps> = ({ 
+  events, 
+  onDateSelect,
+  isInteractive = false
+}) => {
   const eventDates = useMemo(() => {
     return events.reduce((acc, event) => {
       const date = new Date(event.date);
@@ -36,6 +43,13 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
       return acc;
     }, {} as Record<string, (Event & { dateObj: Date })[]>);
   }, [events]);
+  
+  // Handle date selection (for creating new events)
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date && onDateSelect && isInteractive) {
+      onDateSelect(date);
+    }
+  };
   
   // Custom day rendering to highlight days with events
   const renderDay = (day: Date) => {
@@ -79,6 +93,7 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events }) => {
           <Calendar
             mode="default"
             showOutsideDays={true}
+            onDayClick={handleDateSelect}
             components={{
               Day: ({ date }) => renderDay(date as Date)
             }}
