@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter, UserCheck, UserX } from "lucide-react";
+import { Filter, UserCheck, UserX, ShieldCheck, Shield } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 
 // Types for user management
 interface User {
@@ -21,6 +22,12 @@ interface User {
   status: 'active' | 'suspended' | 'pending';
   hasFamilyAccess: boolean;
   familySize: number;
+  isAdmin: boolean;
+  adminRights?: {
+    canCreateEvents: boolean;
+    canManageMembers: boolean;
+    canApproveRequests: boolean;
+  };
 }
 
 // Mock users data
@@ -34,7 +41,8 @@ const mockUsers: User[] = [
     joinDate: new Date("2025-01-15"),
     status: "active",
     hasFamilyAccess: true,
-    familySize: 3
+    familySize: 3,
+    isAdmin: false
   },
   {
     id: "102",
@@ -45,7 +53,8 @@ const mockUsers: User[] = [
     joinDate: new Date("2025-02-03"),
     status: "active",
     hasFamilyAccess: true,
-    familySize: 2
+    familySize: 2,
+    isAdmin: false
   },
   {
     id: "103",
@@ -56,7 +65,8 @@ const mockUsers: User[] = [
     joinDate: new Date("2025-03-10"),
     status: "suspended",
     hasFamilyAccess: false,
-    familySize: 0
+    familySize: 0,
+    isAdmin: false
   },
   {
     id: "104",
@@ -67,7 +77,13 @@ const mockUsers: User[] = [
     joinDate: new Date("2025-03-22"),
     status: "active",
     hasFamilyAccess: true,
-    familySize: 1
+    familySize: 1,
+    isAdmin: true,
+    adminRights: {
+      canCreateEvents: true,
+      canManageMembers: false,
+      canApproveRequests: true
+    }
   },
   {
     id: "105",
@@ -78,7 +94,13 @@ const mockUsers: User[] = [
     joinDate: new Date("2025-04-05"),
     status: "active",
     hasFamilyAccess: false,
-    familySize: 0
+    familySize: 0,
+    isAdmin: true,
+    adminRights: {
+      canCreateEvents: true,
+      canManageMembers: true,
+      canApproveRequests: true
+    }
   }
 ];
 
@@ -86,7 +108,10 @@ const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [users] = useState<User[]>(mockUsers);
+  const [adminFilter, setAdminFilter] = useState<string>('all');
+  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [adminRightsDialogOpen, setAdminRightsDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   
   const filteredUsers = users.filter(user => {
     // Search filter
@@ -98,7 +123,13 @@ const UserManagement: React.FC = () => {
     // Status filter
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     
-    return matchesSearch && matchesStatus;
+    // Admin filter
+    const matchesAdmin = 
+      adminFilter === 'all' || 
+      (adminFilter === 'admin' && user.isAdmin) || 
+      (adminFilter === 'user' && !user.isAdmin);
+    
+    return matchesSearch && matchesStatus && matchesAdmin;
   });
   
   const handleSelectUser = (userId: string) => {
@@ -115,6 +146,53 @@ const UserManagement: React.FC = () => {
     } else {
       setSelectedUsers([]);
     }
+  };
+
+  const toggleAdminStatus = (userId: string) => {
+    setUsers(prev => prev.map(user => {
+      if (user.id === userId) {
+        const isAdmin = !user.isAdmin;
+        return {
+          ...user,
+          isAdmin,
+          adminRights: isAdmin ? {
+            canCreateEvents: true,
+            canManageMembers: false,
+            canApproveRequests: false
+          } : undefined
+        };
+      }
+      return user;
+    }));
+
+    toast({
+      title: "Admin Status Changed",
+      description: "User admin permissions have been updated.",
+    });
+  };
+  
+  const openAdminRightsDialog = (user: User) => {
+    setEditingUser(user);
+    setAdminRightsDialogOpen(true);
+  };
+
+  const updateAdminRights = (userId: string, rights: User['adminRights']) => {
+    setUsers(prev => prev.map(user => {
+      if (user.id === userId) {
+        return {
+          ...user,
+          adminRights: rights
+        };
+      }
+      return user;
+    }));
+    setAdminRightsDialogOpen(false);
+    setEditingUser(null);
+    
+    toast({
+      title: "Admin Rights Updated",
+      description: "User admin permissions have been updated.",
+    });
   };
   
   return (
@@ -158,7 +236,7 @@ const UserManagement: React.FC = () => {
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-gray-500" />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
@@ -166,6 +244,16 @@ const UserManagement: React.FC = () => {
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="suspended">Suspended</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={adminFilter} onValueChange={setAdminFilter}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="All Users" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="admin">Admins Only</SelectItem>
+                <SelectItem value="user">Regular Users</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -186,6 +274,7 @@ const UserManagement: React.FC = () => {
                 <TableHead>National ID</TableHead>
                 <TableHead>Join Date</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Admin</TableHead>
                 <TableHead>Family</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -224,6 +313,19 @@ const UserManagement: React.FC = () => {
                       )}
                     </TableCell>
                     <TableCell>
+                      {user.isAdmin ? (
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 cursor-pointer" 
+                          onClick={() => user.isAdmin && openAdminRightsDialog(user)}>
+                          <ShieldCheck className="h-3 w-3 mr-1" />
+                          Admin
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                          No
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       {user.hasFamilyAccess ? (
                         <div className="flex items-center gap-1">
                           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
@@ -250,13 +352,30 @@ const UserManagement: React.FC = () => {
                             Activate
                           </Button>
                         )}
+                        <Button 
+                          variant={user.isAdmin ? "destructive" : "outline"} 
+                          size="sm"
+                          onClick={() => toggleAdminStatus(user.id)}
+                        >
+                          {user.isAdmin ? (
+                            <>
+                              <Shield className="h-4 w-4 mr-1" />
+                              Remove Admin
+                            </>
+                          ) : (
+                            <>
+                              <ShieldCheck className="h-4 w-4 mr-1" />
+                              Make Admin
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-4">
+                  <TableCell colSpan={9} className="text-center py-4">
                     No users found
                   </TableCell>
                 </TableRow>

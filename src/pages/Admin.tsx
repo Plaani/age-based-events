@@ -18,10 +18,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import UserManagement from "@/components/admin/UserManagement";
+import ReportingView from "@/components/admin/ReportingView";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import EventCalendar from "@/components/dashboard/EventCalendar";
 import { 
   Select, 
   SelectContent, 
@@ -104,6 +106,7 @@ const mockEvents = [
     maxParticipants: 50,
     description: "Annual summer picnic for all members and their families",
     createdBy: "Admin",
+    targetAge: "All Ages",
     participants: [
       { id: "1", name: "Robert Wilson", nationalId: "6705142345" },
       { id: "2", name: "Linda Johnson", nationalId: "7809124567" },
@@ -119,9 +122,26 @@ const mockEvents = [
     maxParticipants: 15,
     description: "Quarterly board meeting to discuss finances and upcoming events",
     createdBy: "Michael Brown",
+    targetAge: "Adults",
     participants: [
       { id: "3", name: "Michael Brown", nationalId: "9102056789" },
       { id: "1", name: "Robert Wilson", nationalId: "6705142345" },
+    ]
+  },
+  {
+    id: "3",
+    title: "Children's Workshop",
+    date: new Date(2025, 6, 5),
+    location: "Activity Room B",
+    registrationDeadline: new Date(2025, 6, 1),
+    unregistrationDeadline: new Date(2025, 6, 3),
+    maxParticipants: 20,
+    description: "Fun activities and crafts for children aged 5-12",
+    createdBy: "Linda Johnson",
+    targetAge: "Children 5-12",
+    participants: [
+      { id: "4", name: "Sarah Davis", nationalId: "8501234567" },
+      { id: "5", name: "Thomas Miller", nationalId: "9003123456" },
     ]
   }
 ];
@@ -145,6 +165,7 @@ const eventFormSchema = z.object({
   unregistrationDeadline: z.date(),
   maxParticipants: z.coerce.number().min(1, "At least 1 participant is required"),
   location: z.string().min(3, "Location must be at least 3 characters"),
+  targetAge: z.string().min(1, "Target age is required"),
 });
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -164,6 +185,8 @@ const Admin: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [targetAgeFilter, setTargetAgeFilter] = useState<string>("all");
   
   // Event form
   const form = useForm<EventFormValues>({
@@ -173,6 +196,7 @@ const Admin: React.FC = () => {
       description: "",
       location: "",
       maxParticipants: 20,
+      targetAge: "All Ages",
     }
   });
   
@@ -190,6 +214,10 @@ const Admin: React.FC = () => {
   
   if (!user || !user.isAdmin) return null;
 
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+  };
+
   const filteredPendingUsers = pendingUsers.filter(user => 
     user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -202,11 +230,27 @@ const Admin: React.FC = () => {
     member.nationalId.includes(searchTerm)
   );
 
-  const filteredEvents = allEvents.filter(event => 
-    event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.createdBy.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEvents = allEvents.filter(event => {
+    const matchesSearch = 
+      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.createdBy.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    const matchesTargetAge = 
+      targetAgeFilter === "all" || 
+      (targetAgeFilter === "adults" && 
+        (event.targetAge.includes("Adult") || event.targetAge === "All Ages")) ||
+      (targetAgeFilter === "children" && 
+        (event.targetAge.includes("Children") || event.targetAge.includes("Kids") || 
+         event.targetAge === "All Ages"));
+      
+    const matchesDate = !selectedDate || 
+      (event.date.getDate() === selectedDate.getDate() && 
+       event.date.getMonth() === selectedDate.getMonth() && 
+       event.date.getFullYear() === selectedDate.getFullYear());
+      
+    return matchesSearch && matchesTargetAge && matchesDate;
+  });
 
   const handleSelectUser = (userId: string) => {
     setSelectedUsers(prev => 
@@ -262,7 +306,7 @@ const Admin: React.FC = () => {
     } else if (confirmAction === "revoke") {
       toast({
         title: "Access Revoked",
-        description: `Access has been revoked for ${selectedMemberships.length} user(s).`,
+        description: `Access has been revoked for ${selectedMemberships.length} user(s) with invalid memberships.`,
       });
       // Would update membership status in the backend
     }
@@ -278,7 +322,7 @@ const Admin: React.FC = () => {
     const newEvent = {
       ...data,
       id: `${allEvents.length + 1}`,
-      createdBy: user.name || "Admin",
+      createdBy: user.firstName + " " + user.lastName,
       participants: []
     };
     
@@ -371,6 +415,10 @@ const Admin: React.FC = () => {
     });
   };
 
+  const clearSelectedDate = () => {
+    setSelectedDate(undefined);
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -390,6 +438,7 @@ const Admin: React.FC = () => {
             <TabsTrigger value="pending-users">Pending Approvals</TabsTrigger>
             <TabsTrigger value="memberships">Invalid Memberships</TabsTrigger>
             <TabsTrigger value="events">Event Management</TabsTrigger>
+            <TabsTrigger value="reporting">Reporting</TabsTrigger>
           </TabsList>
           
           <TabsContent value="all-users">
@@ -639,124 +688,173 @@ const Admin: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="mb-4">
-                  <Input
-                    placeholder="Search events by title, location, or creator..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                
-                {filteredEvents.length > 0 ? (
-                  <div className="space-y-6">
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Event</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Location</TableHead>
-                            <TableHead>Created By</TableHead>
-                            <TableHead>Participants</TableHead>
-                            <TableHead>Capacity</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredEvents.map((event) => (
-                            <TableRow key={event.id}>
-                              <TableCell className="font-medium">{event.title}</TableCell>
-                              <TableCell>{format(event.date, 'MMM d, yyyy')}</TableCell>
-                              <TableCell>{event.location}</TableCell>
-                              <TableCell>{event.createdBy}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center">
-                                  <span className="mr-2">{event.participants.length}</span>
-                                  <Badge variant={event.participants.length >= event.maxParticipants ? "destructive" : "outline"}>
-                                    {event.participants.length >= event.maxParticipants ? "Full" : "Open"}
-                                  </Badge>
-                                </div>
-                              </TableCell>
-                              <TableCell>{event.participants.length}/{event.maxParticipants}</TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => openParticipantsDialog(event)}
-                                  >
-                                    <Users className="mr-1 h-4 w-4" />
-                                    Participants
-                                  </Button>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button size="sm" variant="ghost">⋯</Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                      <DropdownMenuItem>View Details</DropdownMenuItem>
-                                      <DropdownMenuItem>Edit Event</DropdownMenuItem>
-                                      <DropdownMenuItem className="text-red-600">Cancel Event</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-1">
+                    <div className="bg-white border rounded-lg p-4">
+                      <h3 className="font-medium mb-4">Calendar View</h3>
+                      <EventCalendar 
+                        events={allEvents.map(event => ({
+                          id: event.id,
+                          title: event.title,
+                          date: event.date.toISOString(),
+                          registered: event.participants.length > 0,
+                          targetAge: event.targetAge
+                        }))}
+                        onDateSelect={handleDateSelect}
+                        isInteractive={true}
+                      />
+                      {selectedDate && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2 w-full"
+                          onClick={clearSelectedDate}
+                        >
+                          Clear Selected Date
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="md:col-span-2">
+                    <div className="mb-4 flex flex-col md:flex-row gap-3">
+                      <div className="flex-1">
+                        <Input
+                          placeholder="Search events by title, location, or creator..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </div>
+                      <Select value={targetAgeFilter} onValueChange={setTargetAgeFilter}>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Filter by age group" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Age Groups</SelectItem>
+                          <SelectItem value="adults">Adults</SelectItem>
+                          <SelectItem value="children">Children</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                      {events.map((event, index) => (
-                        <Card key={index} className="event-card">
-                          <CardHeader className="pb-2">
-                            <CardTitle>{event.title}</CardTitle>
-                            <CardDescription>{format(event.date, "PPP")}</CardDescription>
-                          </CardHeader>
-                          <CardContent className="pb-2">
-                            <p className="text-sm text-gray-500 line-clamp-2">{event.description}</p>
-                            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                              <div>
-                                <p className="font-medium">Location</p>
-                                <p className="text-gray-500">{event.location}</p>
-                              </div>
-                              <div>
-                                <p className="font-medium">Max Participants</p>
-                                <p className="text-gray-500">{event.maxParticipants}</p>
-                              </div>
-                              <div>
-                                <p className="font-medium">Registration Deadline</p>
-                                <p className="text-gray-500">{format(event.registrationDeadline, "PP")}</p>
-                              </div>
-                              <div>
-                                <p className="font-medium">Unregistration Deadline</p>
-                                <p className="text-gray-500">{format(event.unregistrationDeadline, "PP")}</p>
-                              </div>
-                            </div>
-                          </CardContent>
-                          <CardFooter>
-                            <div className="flex justify-end w-full gap-2">
-                              <Button variant="outline" size="sm">Edit</Button>
-                              <Button variant="destructive" size="sm">Delete</Button>
-                            </div>
-                          </CardFooter>
-                        </Card>
-                      ))}
-                    </div>
+                    {filteredEvents.length > 0 ? (
+                      <div className="space-y-6">
+                        <div className="rounded-md border">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Event</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Location</TableHead>
+                                <TableHead>Created By</TableHead>
+                                <TableHead>Age Group</TableHead>
+                                <TableHead>Participants</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredEvents.map((event) => (
+                                <TableRow key={event.id}>
+                                  <TableCell className="font-medium">{event.title}</TableCell>
+                                  <TableCell>{format(event.date, 'MMM d, yyyy')}</TableCell>
+                                  <TableCell>{event.location}</TableCell>
+                                  <TableCell>{event.createdBy}</TableCell>
+                                  <TableCell>{event.targetAge}</TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center">
+                                      <span className="mr-2">{event.participants.length}/{event.maxParticipants}</span>
+                                      <Badge variant={event.participants.length >= event.maxParticipants ? "destructive" : "outline"}>
+                                        {event.participants.length >= event.maxParticipants ? "Full" : "Open"}
+                                      </Badge>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end gap-2">
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => openParticipantsDialog(event)}
+                                      >
+                                        <Users className="mr-1 h-4 w-4" />
+                                        Participants
+                                      </Button>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button size="sm" variant="ghost">⋯</Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                          <DropdownMenuItem>View Details</DropdownMenuItem>
+                                          <DropdownMenuItem>Edit Event</DropdownMenuItem>
+                                          <DropdownMenuItem className="text-red-600">Cancel Event</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                          {events.map((event, index) => (
+                            <Card key={index} className="event-card">
+                              <CardHeader className="pb-2">
+                                <CardTitle>{event.title}</CardTitle>
+                                <CardDescription>{format(event.date, "PPP")}</CardDescription>
+                              </CardHeader>
+                              <CardContent className="pb-2">
+                                <p className="text-sm text-gray-500 line-clamp-2">{event.description}</p>
+                                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                                  <div>
+                                    <p className="font-medium">Location</p>
+                                    <p className="text-gray-500">{event.location}</p>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">Max Participants</p>
+                                    <p className="text-gray-500">{event.maxParticipants}</p>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">Age Group</p>
+                                    <p className="text-gray-500">{event.targetAge}</p>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">Registration Deadline</p>
+                                    <p className="text-gray-500">{format(event.registrationDeadline, "PP")}</p>
+                                  </div>
+                                </div>
+                              </CardContent>
+                              <CardFooter>
+                                <div className="flex justify-end w-full gap-2">
+                                  <Button variant="outline" size="sm">Edit</Button>
+                                  <Button variant="destructive" size="sm">Delete</Button>
+                                </div>
+                              </CardFooter>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-center px-4 py-12">
+                        <div className="rounded-full bg-secondary p-3 mb-4">
+                          <Calendar className="h-6 w-6 text-secondary-foreground" />
+                        </div>
+                        <h3 className="text-lg font-medium">No Events Found</h3>
+                        <p className="text-sm text-gray-500 mt-2 max-w-md">
+                          {selectedDate 
+                            ? `No events found for ${format(selectedDate, "MMMM d, yyyy")}. Try selecting a different date.` 
+                            : "Create your first event by clicking the \"Create Event\" button above."}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-center px-4 py-12">
-                    <div className="rounded-full bg-secondary p-3 mb-4">
-                      <Calendar className="h-6 w-6 text-secondary-foreground" />
-                    </div>
-                    <h3 className="text-lg font-medium">No Events Created</h3>
-                    <p className="text-sm text-gray-500 mt-2 max-w-md">
-                      Create your first event by clicking the "Create Event" button above.
-                    </p>
-                  </div>
-                )}
+                </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="reporting">
+            <ReportingView />
           </TabsContent>
         </Tabs>
       </div>
@@ -765,326 +863,4 @@ const Admin: React.FC = () => {
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-500" />
-              {confirmAction === "approve" && "Approve Selected Users?"}
-              {confirmAction === "reject" && "Reject Selected Users?"}
-              {confirmAction === "revoke" && "Revoke Access?"}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmAction === "approve" && `You are about to approve ${selectedUsers.length} user(s). They will gain access to the platform.`}
-              {confirmAction === "reject" && `You are about to reject ${selectedUsers.length} user(s). They will not be able to access the platform.`}
-              {confirmAction === "revoke" && `You are about to revoke access for ${selectedMemberships.length} user(s) with invalid memberships.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              variant={confirmAction === "reject" || confirmAction === "revoke" ? "destructive" : "default"}
-              onClick={handleConfirmAction}
-            >
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Event Dialog */}
-      <Dialog open={createEventDialogOpen} onOpenChange={setCreateEventDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Create New Event</DialogTitle>
-            <DialogDescription>
-              Fill in the event details. All fields are required.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmitEvent)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Event Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter event title" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Enter event description" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Event Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarComponent className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Event location" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="registrationDeadline"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Registration Deadline</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarComponent className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="unregistrationDeadline"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Unregistration Deadline</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarComponent className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="maxParticipants"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Maximum Participants</FormLabel>
-                    <FormControl>
-                      <Input type="number" min={1} {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Maximum number of people who can attend this event
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setCreateEventDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Create Event</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Manage Participants Dialog */}
-      <Dialog open={participantsDialogOpen} onOpenChange={setParticipantsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Manage Participants</DialogTitle>
-            <DialogDescription>
-              {selectedEvent && (
-                <span>
-                  {selectedEvent.title} - {format(selectedEvent.date, 'MMM d, yyyy')} ({selectedEvent.participants.length}/{selectedEvent.maxParticipants} participants)
-                </span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedEvent && (
-            <div className="space-y-4">
-              <div className="flex flex-col space-y-2">
-                <h3 className="text-sm font-medium">Add Participant</h3>
-                <div className="flex gap-2">
-                  <Select value={selectedMember} onValueChange={setSelectedMember}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select a member" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableMembers.length > 0 ? (
-                        availableMembers.map((member) => (
-                          <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem disabled value="none">No available members</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    onClick={addParticipant} 
-                    disabled={!selectedMember || selectedEvent.participants.length >= selectedEvent.maxParticipants}
-                  >
-                    Add
-                  </Button>
-                </div>
-                {selectedEvent.participants.length >= selectedEvent.maxParticipants && (
-                  <p className="text-sm text-red-500">Maximum capacity reached</p>
-                )}
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium mb-2">Current Participants</h3>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>National ID</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedEvent.participants.length > 0 ? (
-                        selectedEvent.participants.map((participant: any) => (
-                          <TableRow key={participant.id}>
-                            <TableCell className="font-medium">{participant.name}</TableCell>
-                            <TableCell>{participant.nationalId}</TableCell>
-                            <TableCell className="text-right">
-                              <Button 
-                                variant="destructive" 
-                                size="sm" 
-                                onClick={() => removeParticipant(participant.id)}
-                              >
-                                <UserX className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-center py-4">
-                            No participants yet
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setParticipantsDialogOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </MainLayout>
-  );
-};
-
-export default Admin;
+            <DialogTitle className="flex items-
