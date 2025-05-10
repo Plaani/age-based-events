@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +15,15 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Users } from "lucide-react";
 
+// Interface to define the structure of events
+interface Event {
+  id: string;
+  title: string;
+  // Other event properties can be added as needed
+}
+
 // Mock events data - this would come from your actual events state
-const mockEvents = [
+const mockEvents: Event[] = [
   { id: '1', title: 'Summer Picnic' },
   { id: '2', title: 'Board Meeting' },
   { id: '3', title: 'Children\'s Workshop' },
@@ -95,7 +101,9 @@ const VolunteerManagement: React.FC = () => {
   const [volunteerDialogOpen, setVolunteerDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [volunteerStatusFilter, setVolunteerStatusFilter] = useState<string>("all");
+  const [events, setEvents] = useState<Event[]>([]);
 
+  // Initialize form
   const form = useForm<VolunteerFormValues>({
     resolver: zodResolver(volunteerFormSchema),
     defaultValues: {
@@ -104,6 +112,104 @@ const VolunteerManagement: React.FC = () => {
       eventIds: [],
     }
   });
+
+  // Load users and events on component mount
+  useEffect(() => {
+    // Load users from localStorage or use mock data
+    const loadUsers = () => {
+      const savedUsers = localStorage.getItem("mockUsers");
+      if (savedUsers) {
+        setUsersList(JSON.parse(savedUsers));
+      } else {
+        // Use mock data if no saved users
+        const mockUsersList: User[] = [
+          {
+            id: '1',
+            nationalId: '12345678901',
+            firstName: 'Admin',
+            lastName: 'User',
+            email: 'admin@example.com',
+            isAdmin: true,
+            approved: true,
+            age: 35,
+            birthdate: '1988-05-15',
+            isVolunteer: true,
+            volunteerFor: ['all']
+          },
+          {
+            id: '2',
+            nationalId: '98765432109',
+            firstName: 'Regular',
+            lastName: 'User',
+            email: 'user@example.com',
+            isAdmin: false,
+            approved: true,
+            age: 28,
+            birthdate: '1995-10-23',
+            isVolunteer: true,
+            volunteerFor: ['1', '3']
+          },
+          {
+            id: '4',
+            nationalId: '55667788990',
+            firstName: 'Sarah',
+            lastName: 'Johnson',
+            email: 'sarah@example.com',
+            isAdmin: false,
+            approved: true,
+            age: 32,
+            birthdate: '1993-08-17',
+            isVolunteer: false
+          },
+          {
+            id: '5',
+            nationalId: '33445566778',
+            firstName: 'Michael',
+            lastName: 'Williams',
+            email: 'michael@example.com',
+            isAdmin: false,
+            approved: true,
+            age: 45,
+            birthdate: '1980-04-23',
+            isVolunteer: false
+          }
+        ];
+        setUsersList(mockUsersList);
+        localStorage.setItem("mockUsers", JSON.stringify(mockUsersList));
+      }
+    };
+
+    // Load events from localStorage or use mock data
+    const loadEvents = () => {
+      // Check if we have any events from the Volunteers page
+      const combinedItems = localStorage.getItem("communityActivities");
+      if (combinedItems) {
+        const parsedItems = JSON.parse(combinedItems);
+        // Extract all events from combined items (both volunteer tasks and events)
+        const allEvents = parsedItems.filter((item: any) => item.itemType === 'event' || item.itemType === 'volunteer-task')
+          .map((item: any) => ({
+            id: item.id,
+            title: item.title
+          }));
+        setEvents(allEvents);
+      } else {
+        // Use mock events if no saved events
+        const mockEvents: Event[] = [
+          { id: '1', title: 'Summer Picnic' },
+          { id: '2', title: 'Board Meeting' },
+          { id: '3', title: 'Children\'s Workshop' },
+          { id: '4', title: 'Annual Gathering' },
+          { id: '5', title: 'Winter Festival' },
+        ];
+        setEvents(mockEvents);
+        // Save mock events to localStorage
+        localStorage.setItem("events", JSON.stringify(mockEvents));
+      }
+    };
+
+    loadUsers();
+    loadEvents();
+  }, []);
 
   // Filter users based on search term and volunteer status
   const filteredUsers = usersList.filter(user => {
@@ -209,7 +315,7 @@ const VolunteerManagement: React.FC = () => {
       console.log("Updated mock users in localStorage");
     } else {
       // Initialize mock users in localStorage if not present
-      const updatedMockUsers = mockUsersList.map(u => {
+      const updatedMockUsers = usersList.map(u => {
         if (u.id === userId) {
           return {
             ...u,
@@ -229,7 +335,7 @@ const VolunteerManagement: React.FC = () => {
     if (eventIds.includes('all')) return "All Events";
     
     return eventIds
-      .map(id => mockEvents.find(event => event.id === id)?.title)
+      .map(id => events.find(event => event.id === id)?.title)
       .filter(Boolean)
       .join(", ");
   };
@@ -404,19 +510,25 @@ const VolunteerManagement: React.FC = () => {
               {form.watch("volunteerType") === "specific" && (
                 <div className="space-y-4">
                   <FormLabel className="block text-sm font-medium">Select Events</FormLabel>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {mockEvents.map(event => (
-                      <div key={event.id} className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`event-${event.id}`} 
-                          checked={(form.watch("eventIds") || []).includes(event.id)} 
-                          onCheckedChange={() => handleEventCheckboxChange(event.id)}
-                        />
-                        <label htmlFor={`event-${event.id}`} className="text-sm">
-                          {event.title}
-                        </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-1">
+                    {events.length > 0 ? (
+                      events.map(event => (
+                        <div key={event.id} className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`event-${event.id}`} 
+                            checked={(form.watch("eventIds") || []).includes(event.id)} 
+                            onCheckedChange={() => handleEventCheckboxChange(event.id)}
+                          />
+                          <label htmlFor={`event-${event.id}`} className="text-sm">
+                            {event.title}
+                          </label>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 col-span-2 text-center py-4">
+                        No events available
                       </div>
-                    ))}
+                    )}
                   </div>
                   {form.formState.errors.eventIds && (
                     <p className="text-sm text-red-500">Please select at least one event</p>
