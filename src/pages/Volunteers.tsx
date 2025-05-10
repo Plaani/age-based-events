@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Input } from "@/components/ui/input";
@@ -36,7 +35,10 @@ const mockTasks: VolunteerTaskType[] = [
       { id: "3", name: "Michael Brown", nationalId: "9102056789" },
       { id: "4", name: "Sarah Davis", nationalId: "8501234567" },
       { id: "5", name: "Thomas Miller", nationalId: "9003123456" },
-    ]
+    ],
+    createdBy: "Admin User",
+    creatorId: "1",
+    isPublished: true
   },
   {
     id: "2",
@@ -55,7 +57,10 @@ const mockTasks: VolunteerTaskType[] = [
       { id: "7", name: "James Wilson", nationalId: "8806121234" },
       { id: "8", name: "Emily Taylor", nationalId: "9205043456" },
       { id: "9", name: "Daniel White", nationalId: "7701023456" },
-    ]
+    ],
+    createdBy: "Regular User",
+    creatorId: "2",
+    isPublished: true
   },
   {
     id: "3",
@@ -73,7 +78,10 @@ const mockTasks: VolunteerTaskType[] = [
       { id: "6", name: "Emma Clark", nationalId: "8712090123" },
       { id: "10", name: "Olivia Martinez", nationalId: "9103056789" },
       { id: "11", name: "William Anderson", nationalId: "8407089012" },
-    ]
+    ],
+    createdBy: "Admin User",
+    creatorId: "1",
+    isPublished: true
   },
   {
     id: "4",
@@ -86,7 +94,10 @@ const mockTasks: VolunteerTaskType[] = [
     spotsTotal: 4,
     starsReward: 3,
     category: "Healthcare",
-    volunteers: []
+    volunteers: [],
+    createdBy: "Regular User",
+    creatorId: "2",
+    isPublished: true
   },
   {
     id: "5",
@@ -115,7 +126,10 @@ const mockTasks: VolunteerTaskType[] = [
       { id: "13", name: "Benjamin Moore", nationalId: "9008076543" },
       { id: "14", name: "Ava Wilson", nationalId: "8512093456" },
       { id: "15", name: "Alexander Lee", nationalId: "8307056789" }
-    ]
+    ],
+    createdBy: "Admin User",
+    creatorId: "1",
+    isPublished: false
   }
 ];
 
