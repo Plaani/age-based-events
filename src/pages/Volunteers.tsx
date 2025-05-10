@@ -9,10 +9,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import VolunteerTask, { Volunteer, VolunteerTask as VolunteerTaskType } from "@/components/volunteers/VolunteerTask";
-import { Award, CalendarDays, ClipboardCheck, Filter, MapPin, Plus, Star, Clock } from "lucide-react";
+import { Award, CalendarDays, ClipboardCheck, Filter, MapPin, Plus, Star, Clock, ChevronDown, Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -165,6 +166,37 @@ const mockUserVolunteering = [
   }
 ];
 
+// Mock events data - added for collapsing with volunteer opportunities
+const mockEvents = [
+  {
+    id: "event-1",
+    title: "Summer Picnic",
+    date: new Date(2025, 5, 15),
+    location: "Central Park",
+    description: "Annual summer picnic for all members and their families",
+    category: "Community Event",
+    registered: true,
+  },
+  {
+    id: "event-2",
+    title: "Board Meeting",
+    date: new Date(2025, 5, 20),
+    location: "Conference Room A",
+    description: "Quarterly board meeting to discuss finances and upcoming events",
+    category: "Meeting",
+    registered: false,
+  },
+  {
+    id: "event-3",
+    title: "Children's Workshop",
+    date: new Date(2025, 6, 5),
+    location: "Activity Room B",
+    description: "Fun activities and crafts for children aged 5-12",
+    category: "Workshop",
+    registered: false,
+  }
+];
+
 const categories = [
   "All Categories",
   "Environment",
@@ -173,6 +205,9 @@ const categories = [
   "Healthcare",
   "Event",
   "Sports",
+  "Community Event",
+  "Meeting",
+  "Workshop",
   "Other"
 ];
 
@@ -186,24 +221,72 @@ const Volunteers: React.FC = () => {
   const [tasks] = useState<VolunteerTaskType[]>(mockTasks);
   const [myTasks] = useState(mockUserVolunteering);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [events] = useState(mockEvents);
+  const [groupsExpanded, setGroupsExpanded] = useState<Record<string, boolean>>({
+    "Environment": true,
+    "Community Service": true,
+    "Education": true,
+    "Healthcare": true,
+    "Event": true,
+    "Sports": true,
+    "Community Event": true,
+    "Meeting": true,
+    "Workshop": true,
+    "Other": true
+  });
   
-  const filteredTasks = tasks.filter(task => {
+  const toggleGroup = (category: string) => {
+    setGroupsExpanded(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+  
+  // Combine tasks and events into one dataset
+  const combinedItems = [
+    ...tasks.map(task => ({
+      ...task,
+      itemType: 'volunteer-task',
+      starsReward: task.starsReward
+    })),
+    ...events.map(event => ({
+      ...event,
+      itemType: 'event',
+      starsReward: 0 // Events don't have star rewards
+    }))
+  ];
+  
+  // Filter combined items
+  const filteredItems = combinedItems.filter(item => {
     // Search filter
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         task.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.location.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Category filter
-    const matchesCategory = category === 'All Categories' || task.category === category;
+    const matchesCategory = category === 'All Categories' || item.category === category;
     
     // Date filter
     const matchesDate = !selectedDate || 
-      (task.date.getDate() === selectedDate.getDate() && 
-       task.date.getMonth() === selectedDate.getMonth() && 
-       task.date.getFullYear() === selectedDate.getFullYear());
+      (item.date.getDate() === selectedDate.getDate() && 
+       item.date.getMonth() === selectedDate.getMonth() && 
+       item.date.getFullYear() === selectedDate.getFullYear());
     
     return matchesSearch && matchesCategory && matchesDate;
   });
+  
+  // Group filtered items by category
+  const groupedItems = filteredItems.reduce((groups, item) => {
+    const category = item.category;
+    if (!groups[category]) {
+      groups[category] = [];
+    }
+    groups[category].push(item);
+    return groups;
+  }, {} as Record<string, any[]>);
+  
+  // Sort categories to keep them in consistent order
+  const sortedCategories = Object.keys(groupedItems).sort();
   
   // Filter user's volunteer tasks based on tab
   const filteredUserTasks = myTasks.filter(task => task.status === volunteersTab);
@@ -227,6 +310,13 @@ const Volunteers: React.FC = () => {
     setSelectedTask(task);
     setShowVolunteers(true);
   };
+
+  const handleEventRegistration = (event: any) => {
+    toast({
+      title: "Event Registration",
+      description: `You have registered for ${event.title}.`,
+    });
+  };
   
   return (
     <MainLayout>
@@ -235,10 +325,10 @@ const Volunteers: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center">
               <ClipboardCheck className="h-8 w-8 mr-2 text-primary" />
-              Volunteer Opportunities
+              Community Activities
             </h1>
             <p className="text-gray-500 mt-1">
-              Contribute to the community and earn stars
+              Register for events and volunteer opportunities
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -253,7 +343,7 @@ const Volunteers: React.FC = () => {
           {/* Left column with filters and calendar */}
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-lg border">
-              <h3 className="text-lg font-medium mb-4">Find Opportunities</h3>
+              <h3 className="text-lg font-medium mb-4">Find Activities</h3>
               
               <div className="space-y-4">
                 <div>
@@ -262,7 +352,7 @@ const Volunteers: React.FC = () => {
                   </label>
                   <Input 
                     id="search-tasks"
-                    placeholder="Search volunteer tasks..."
+                    placeholder="Search activities..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="mt-1"
@@ -310,7 +400,7 @@ const Volunteers: React.FC = () => {
             </div>
             
             <div className="bg-white p-6 rounded-lg border">
-              <h3 className="text-lg font-medium mb-4">My Volunteering</h3>
+              <h3 className="text-lg font-medium mb-4">My Activities</h3>
               
               <Tabs value={volunteersTab} onValueChange={(v) => setVolunteersTab(v as 'upcoming' | 'completed')}>
                 <TabsList className="w-full">
@@ -350,8 +440,8 @@ const Volunteers: React.FC = () => {
                   ) : (
                     <div className="text-center py-6 text-gray-500">
                       {volunteersTab === 'upcoming' 
-                        ? "No upcoming volunteer tasks" 
-                        : "No completed volunteer tasks"}
+                        ? "No upcoming activities" 
+                        : "No completed activities"}
                     </div>
                   )}
                 </div>
@@ -359,38 +449,93 @@ const Volunteers: React.FC = () => {
             </div>
           </div>
           
-          {/* Right column with volunteer tasks */}
+          {/* Right column with combined events and volunteer tasks */}
           <div className="lg:col-span-2">
             <div className="bg-white p-6 rounded-lg border">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold flex items-center">
                   <Filter className="h-5 w-5 mr-2" />
                   {category === 'All Categories' 
-                    ? 'All Volunteer Tasks' 
-                    : `${category} Tasks`}
+                    ? 'All Activities' 
+                    : `${category} Activities`}
                   {selectedDate && ` - ${format(selectedDate, 'PP')}`}
                 </h2>
                 <Badge variant="outline" className="bg-primary/10">
-                  {filteredTasks.length} task{filteredTasks.length !== 1 && 's'}
+                  {filteredItems.length} activit{filteredItems.length !== 1 ? 'ies' : 'y'}
                 </Badge>
               </div>
               
-              {filteredTasks.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredTasks.map((task) => (
-                    <VolunteerTask 
-                      key={task.id} 
-                      task={task}
-                      onVolunteer={() => handleVolunteer(task)}
-                      onViewVolunteers={() => viewVolunteers(task)}
-                      showVolunteerButton={user !== null}
-                    />
+              {filteredItems.length > 0 ? (
+                <div className="space-y-6">
+                  {sortedCategories.map(category => (
+                    <Collapsible 
+                      key={category}
+                      open={groupsExpanded[category]}
+                      onOpenChange={() => toggleGroup(category)}
+                      className="mb-4"
+                    >
+                      <CollapsibleTrigger asChild>
+                        <div className="flex justify-between items-center bg-gray-50 p-3 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                          <h3 className="font-medium flex items-center">
+                            <span>{category}</span>
+                            <Badge variant="outline" className="ml-2 bg-white">
+                              {groupedItems[category].length}
+                            </Badge>
+                          </h3>
+                          <ChevronDown className={`h-4 w-4 transition-transform ${groupsExpanded[category] ? 'transform rotate-180' : ''}`} />
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {groupedItems[category].map((item) => (
+                            item.itemType === 'volunteer-task' ? (
+                              <VolunteerTask 
+                                key={item.id} 
+                                task={item}
+                                onVolunteer={() => handleVolunteer(item)}
+                                onViewVolunteers={() => viewVolunteers(item)}
+                                showVolunteerButton={user !== null}
+                              />
+                            ) : (
+                              <div key={item.id} className="border rounded-lg p-4 hover:shadow transition-shadow">
+                                <div className="flex items-start justify-between">
+                                  <h3 className="font-medium text-base">{item.title}</h3>
+                                  <Badge variant={item.registered ? "secondary" : "outline"}>
+                                    {item.registered ? "Registered" : "Open"}
+                                  </Badge>
+                                </div>
+                                <p className="text-gray-600 text-sm mt-1 line-clamp-2">{item.description}</p>
+                                <div className="flex items-center mt-3 text-sm text-gray-500">
+                                  <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                                  <span className="mr-3">{format(item.date, "PP")}</span>
+                                  <MapPin className="h-3.5 w-3.5 mr-1" />
+                                  <span>{item.location}</span>
+                                </div>
+                                <div className="flex justify-between items-center mt-3">
+                                  <Badge variant="outline" className="text-xs">
+                                    {item.category}
+                                  </Badge>
+                                  {!item.registered && user && (
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => handleEventRegistration(item)}
+                                    >
+                                      Register
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-16">
                   <ClipboardCheck className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-600">No volunteer tasks found</h3>
+                  <h3 className="text-lg font-medium text-gray-600">No activities found</h3>
                   <p className="text-gray-500 mt-1">
                     Try changing your search criteria or check back later
                   </p>
