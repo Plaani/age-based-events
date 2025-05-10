@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -145,6 +146,9 @@ const VolunteerManagement: React.FC = () => {
     setUsersList(updatedUsers);
     setVolunteerDialogOpen(false);
     
+    // Update volunteer in localStorage to reflect changes across the app
+    updateVolunteerInLocalStorage(data.userId, true, data.volunteerType === "all" ? ['all'] : data.eventIds || []);
+    
     toast({
       title: "Volunteer Status Updated",
       description: `${selectedUser?.firstName} ${selectedUser?.lastName} has been ${data.volunteerType === "all" ? "assigned as a volunteer for all events" : "assigned as a volunteer for selected events"}`,
@@ -165,10 +169,59 @@ const VolunteerManagement: React.FC = () => {
 
     setUsersList(updatedUsers);
     
+    // Update volunteer in localStorage to reflect changes across the app
+    updateVolunteerInLocalStorage(userId, false, []);
+    
     toast({
       title: "Volunteer Status Removed",
       description: "User is no longer a volunteer",
     });
+  };
+
+  // Helper function to update volunteer status in localStorage (to mimic backend integration)
+  const updateVolunteerInLocalStorage = (userId: string, isVolunteer: boolean, volunteerFor: string[]) => {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      const userObject = JSON.parse(savedUser);
+      if (userObject.id === userId) {
+        userObject.isVolunteer = isVolunteer;
+        userObject.volunteerFor = volunteerFor;
+        localStorage.setItem("user", JSON.stringify(userObject));
+        console.log("Updated current user volunteer status in localStorage:", userObject);
+      }
+    }
+
+    // Also update mock users in localStorage to simulate database update
+    const mockUsersInStorage = localStorage.getItem("mockUsers");
+    if (mockUsersInStorage) {
+      const mockUsersArray = JSON.parse(mockUsersInStorage);
+      const updatedMockUsers = mockUsersArray.map((u: User) => {
+        if (u.id === userId) {
+          return {
+            ...u,
+            isVolunteer,
+            volunteerFor
+          };
+        }
+        return u;
+      });
+      localStorage.setItem("mockUsers", JSON.stringify(updatedMockUsers));
+      console.log("Updated mock users in localStorage");
+    } else {
+      // Initialize mock users in localStorage if not present
+      const updatedMockUsers = mockUsersList.map(u => {
+        if (u.id === userId) {
+          return {
+            ...u,
+            isVolunteer,
+            volunteerFor
+          };
+        }
+        return u;
+      });
+      localStorage.setItem("mockUsers", JSON.stringify(updatedMockUsers));
+      console.log("Initialized mock users in localStorage");
+    }
   };
 
   // Get event titles for display

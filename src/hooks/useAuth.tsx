@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 export interface User {
   id: string;
@@ -23,6 +24,7 @@ interface AuthContextType {
   login: (nationalId: string, password: string) => Promise<void>;
   register: (userData: RegistrationData) => Promise<void>;
   logout: () => void;
+  updateCurrentUser: (updatedFields: Partial<User>) => void;
 }
 
 interface RegistrationData {
@@ -91,8 +93,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
+    
+    // Initialize mock users in localStorage if not present
+    if (!localStorage.getItem("mockUsers")) {
+      localStorage.setItem("mockUsers", JSON.stringify(mockUsers));
+    }
+    
     setIsLoading(false);
   }, []);
+
+  // Method to update the current user's data
+  const updateCurrentUser = (updatedFields: Partial<User>) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...updatedFields };
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    
+    // Also update in mock users
+    const mockUsersInStorage = localStorage.getItem("mockUsers");
+    if (mockUsersInStorage) {
+      const mockUsersArray = JSON.parse(mockUsersInStorage);
+      const updatedMockUsers = mockUsersArray.map((u: User) => {
+        if (u.id === user.id) {
+          return { ...u, ...updatedFields };
+        }
+        return u;
+      });
+      localStorage.setItem("mockUsers", JSON.stringify(updatedMockUsers));
+    }
+  };
 
   // Mock login function - replace with actual API call
   const login = async (nationalId: string, password: string) => {
@@ -103,7 +133,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const foundUser = mockUsers.find(user => user.nationalId === nationalId);
+      // Try to get users from localStorage first, fallback to mockUsers
+      const usersFromStorage = localStorage.getItem("mockUsers");
+      const usersArray = usersFromStorage ? JSON.parse(usersFromStorage) : mockUsers;
+      
+      const foundUser = usersArray.find((user: User) => user.nationalId === nationalId);
       
       if (!foundUser) {
         throw new Error('Invalid credentials');
@@ -143,12 +177,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Get users from localStorage or fallback to mockUsers
+      const usersFromStorage = localStorage.getItem("mockUsers");
+      const usersArray = usersFromStorage ? JSON.parse(usersFromStorage) : mockUsers;
+      
       // Check if user already exists
-      if (mockUsers.some(user => user.nationalId === userData.nationalId)) {
+      if (usersArray.some((user: User) => user.nationalId === userData.nationalId)) {
         throw new Error('A user with this National ID already exists');
       }
       
-      if (mockUsers.some(user => user.email === userData.email)) {
+      if (usersArray.some((user: User) => user.email === userData.email)) {
         throw new Error('A user with this email already exists');
       }
       
@@ -165,7 +203,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate()) ? 1 : 0);
       
       const newUser: User = {
-        id: String(mockUsers.length + 1),
+        id: String(usersArray.length + 1),
         nationalId: userData.nationalId,
         firstName: userData.firstName,
         lastName: userData.lastName,
@@ -173,10 +211,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin: false,
         approved: false,  // Require admin approval
         age,
-        birthdate
+        birthdate,
+        isVolunteer: false, // New users are not volunteers by default
+        volunteerFor: []
       };
       
-      // In a real app, send this data to your backend
+      // Add user to mock users array in localStorage
+      const updatedUsersArray = [...usersArray, newUser];
+      localStorage.setItem("mockUsers", JSON.stringify(updatedUsersArray));
       
       toast({
         title: "Registration successful",
@@ -204,7 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, error, login, register, logout, updateCurrentUser }}>
       {children}
     </AuthContext.Provider>
   );

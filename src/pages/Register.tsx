@@ -29,6 +29,7 @@ const formSchema = z.object({
   }),
   confirmPassword: z.string(),
   includeFamily: z.boolean().default(false),
+  isVolunteer: z.boolean().default(false), // Default volunteer status is false
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
@@ -49,6 +50,7 @@ const Register: React.FC = () => {
       password: "",
       confirmPassword: "",
       includeFamily: false,
+      isVolunteer: false, // Default is false
     },
   });
 
@@ -62,6 +64,8 @@ const Register: React.FC = () => {
         email: values.email,
         password: values.password,
         includeFamily: values.includeFamily,
+        // Note: isVolunteer is intentionally not passed here as new users will always
+        // start with isVolunteer: false and must be approved by admins later
       });
       
       // Redirect to a pending approval page
@@ -218,6 +222,9 @@ const Register: React.FC = () => {
               <Link to="/login" className="text-brand-600 hover:underline">
                 Sign In
               </Link>
+            </div>
+            <div className="text-center text-xs text-gray-500">
+              Note: Volunteer status is assigned by administrators after registration.
             </div>
           </CardFooter>
         </Card>
