@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import UserManagement from "@/components/admin/UserManagement";
 import ReportingView from "@/components/admin/ReportingView";
+import VolunteerManagement from "@/components/admin/VolunteerManagement";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -460,6 +461,7 @@ const Admin: React.FC = () => {
             <TabsTrigger value="pending-users">Pending Approvals</TabsTrigger>
             <TabsTrigger value="memberships">Invalid Memberships</TabsTrigger>
             <TabsTrigger value="events">Event Management</TabsTrigger>
+            <TabsTrigger value="volunteers">Volunteer Management</TabsTrigger>
             <TabsTrigger value="reporting">Reporting</TabsTrigger>
           </TabsList>
           
@@ -873,6 +875,10 @@ const Admin: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="volunteers">
+            <VolunteerManagement />
           </TabsContent>
 
           <TabsContent value="reporting">

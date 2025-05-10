@@ -3,8 +3,9 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Award } from "lucide-react";
+import { Award, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface VolunteerTask {
   id: string;
@@ -18,6 +19,9 @@ export interface VolunteerTask {
   starsReward: number;
   category: string;
   volunteers: Volunteer[];
+  createdBy: string;
+  creatorId: string;
+  isPublished: boolean;
 }
 
 export interface Volunteer {
@@ -30,6 +34,7 @@ interface VolunteerTaskProps {
   task: VolunteerTask;
   onVolunteer?: () => void;
   onViewVolunteers?: () => void;
+  onToggleVisibility?: () => void;
   showVolunteerButton?: boolean;
 }
 
@@ -37,11 +42,19 @@ const VolunteerTask: React.FC<VolunteerTaskProps> = ({
   task, 
   onVolunteer, 
   onViewVolunteers,
+  onToggleVisibility,
   showVolunteerButton = true
 }) => {
+  const { user } = useAuth();
   const spotsLeft = task.spotsTotal - task.volunteers.length;
   const isFull = spotsLeft === 0;
   
+  // Determine if current user has rights to manage this event
+  const canManageEvent = 
+    user?.isAdmin || 
+    task.creatorId === user?.id || 
+    (user?.isVolunteer && user?.volunteerFor?.includes('all'));
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -50,9 +63,16 @@ const VolunteerTask: React.FC<VolunteerTaskProps> = ({
             <CardTitle>{task.title}</CardTitle>
             <CardDescription>{format(task.date, "PPP")}</CardDescription>
           </div>
-          <Badge variant={isFull ? "outline" : "secondary"} className={isFull ? "bg-gray-100" : ""}>
-            {task.category}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {!task.isPublished && (
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                Draft
+              </Badge>
+            )}
+            <Badge variant={isFull ? "outline" : "secondary"} className={isFull ? "bg-gray-100" : ""}>
+              {task.category}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -92,19 +112,42 @@ const VolunteerTask: React.FC<VolunteerTaskProps> = ({
         </div>
       </CardContent>
       <CardFooter className="flex justify-between pt-2">
-        {onViewVolunteers && (
-          <Button variant="outline" size="sm" onClick={onViewVolunteers}>
-            View Volunteers ({task.volunteers.length})
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {onViewVolunteers && (
+            <Button variant="outline" size="sm" onClick={onViewVolunteers}>
+              View Volunteers ({task.volunteers.length})
+            </Button>
+          )}
+          {canManageEvent && onToggleVisibility && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onToggleVisibility}
+              className="flex items-center gap-1"
+            >
+              {task.isPublished ? (
+                <>
+                  <EyeOff className="h-4 w-4" /> 
+                  <span>Make Draft</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4" />
+                  <span>Publish</span>
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+        
         {showVolunteerButton && (
           <Button 
             variant={isFull ? "outline" : "default"} 
             size="sm"
-            disabled={isFull}
+            disabled={isFull || !task.isPublished}
             onClick={onVolunteer}
           >
-            {isFull ? 'Task Full' : 'Volunteer'}
+            {!task.isPublished ? 'Not Published' : isFull ? 'Task Full' : 'Volunteer'}
           </Button>
         )}
       </CardFooter>

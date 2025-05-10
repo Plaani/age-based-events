@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
 
@@ -13,6 +12,8 @@ export interface User {
   age: number;
   birthdate: string;
   familyId?: string;
+  isVolunteer?: boolean;
+  volunteerFor?: string[]; // Array of event IDs or 'all'
 }
 
 interface AuthContextType {
@@ -45,7 +46,9 @@ const mockUsers: User[] = [
     approved: true,
     age: 35,
     birthdate: '1988-05-15',
-    familyId: '101'
+    familyId: '101',
+    isVolunteer: true,
+    volunteerFor: ['all']
   },
   {
     id: '2',
@@ -57,7 +60,9 @@ const mockUsers: User[] = [
     approved: true,
     age: 28,
     birthdate: '1995-10-23',
-    familyId: '102'
+    familyId: '102',
+    isVolunteer: true,
+    volunteerFor: ['1', '3'] // Volunteer for specific events
   },
   {
     id: '3',
@@ -68,7 +73,8 @@ const mockUsers: User[] = [
     isAdmin: false,
     approved: false,
     age: 42,
-    birthdate: '1980-12-03'
+    birthdate: '1980-12-03',
+    isVolunteer: false
   }
 ];
 
