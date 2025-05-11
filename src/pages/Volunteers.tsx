@@ -167,8 +167,19 @@ const mockUserVolunteering = [
   }
 ];
 
+// Define the event type to include the registered property
+interface EventItem {
+  id: string;
+  title: string;
+  date: Date;
+  location: string;
+  description: string;
+  category: string;
+  registered: boolean;
+}
+
 // Mock events data - added for collapsing with volunteer opportunities
-const mockEvents = [
+const mockEvents: EventItem[] = [
   {
     id: "event-1",
     title: "Summer Picnic",
@@ -219,6 +230,24 @@ interface FamilyMember {
   age: number;
 }
 
+// Create a union type for combined items
+interface CombinedItem {
+  id: string;
+  title: string;
+  date: Date;
+  location: string;
+  description: string;
+  category: string;
+  itemType: 'volunteer-task' | 'event';
+  starsReward: number;
+  isPublished?: boolean;
+  spotsTotal?: number;
+  spotsAvailable?: number;
+  volunteers?: Volunteer[];
+  duration?: number;
+  registered?: boolean;
+}
+
 const Volunteers: React.FC = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -229,7 +258,7 @@ const Volunteers: React.FC = () => {
   const [tasks, setTasks] = useState<VolunteerTaskType[]>(mockTasks);
   const [myTasks] = useState(mockUserVolunteering);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [events] = useState(mockEvents);
+  const [events] = useState<EventItem[]>(mockEvents);
   const [groupsExpanded, setGroupsExpanded] = useState<Record<string, boolean>>({
     "Environment": true,
     "Community Service": true,
@@ -293,15 +322,15 @@ const Volunteers: React.FC = () => {
   };
   
   // Combine tasks and events into one dataset
-  const combinedItems = [
+  const combinedItems: CombinedItem[] = [
     ...tasks.map(task => ({
       ...task,
-      itemType: 'volunteer-task',
+      itemType: 'volunteer-task' as const,
       starsReward: task.starsReward
     })),
     ...events.map(event => ({
       ...event,
-      itemType: 'event',
+      itemType: 'event' as const,
       starsReward: 0 // Events don't have star rewards
     }))
   ];
@@ -405,7 +434,7 @@ const Volunteers: React.FC = () => {
     }
   };
   
-  const unregisterFromTask = (task: any) => {
+  const unregisterFromTask = (task: CombinedItem) => {
     // Remove registrations for this task
     setRegisteredTasks(prev => {
       const newRegistrations = { ...prev };
@@ -438,7 +467,7 @@ const Volunteers: React.FC = () => {
     setShowVolunteers(true);
   };
 
-  const handleEventRegistration = (event: any) => {
+  const handleEventRegistration = (event: CombinedItem) => {
     toast({
       title: "Event Registration",
       description: `You have registered for ${event.title}.`,
@@ -446,10 +475,10 @@ const Volunteers: React.FC = () => {
   };
   
   // Determine button state for a task or event
-  const getButtonState = (item: any) => {
+  const getButtonState = (item: CombinedItem) => {
     // For volunteer tasks
     if (item.itemType === 'volunteer-task') {
-      const isFull = item.volunteers.length >= item.spotsTotal;
+      const isFull = item.volunteers && item.volunteers.length >= (item.spotsTotal || 0);
       const isRegistered = isRegisteredForTask(item.id);
       const pastDeadline = isPastDeadline(item.date);
       
@@ -497,13 +526,13 @@ const Volunteers: React.FC = () => {
         text: 'Volunteer',
         variant: 'default' as const,
         disabled: false,
-        onClick: () => handleVolunteer(item),
+        onClick: () => handleVolunteer(item as VolunteerTaskType),
         icon: <Check className="h-4 w-4 mr-1" />
       };
     }
     
     // For events
-    const isRegistered = event.registered;
+    const isRegistered = item.registered;
     return {
       text: isRegistered ? 'Registered' : 'Register',
       variant: isRegistered ? 'outline' as const : 'default' as const,
