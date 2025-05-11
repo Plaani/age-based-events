@@ -246,6 +246,8 @@ interface CombinedItem {
   volunteers?: Volunteer[];
   duration?: number;
   registered?: boolean;
+  createdBy?: string;
+  creatorId?: string;
 }
 
 const Volunteers: React.FC = () => {
@@ -526,7 +528,26 @@ const Volunteers: React.FC = () => {
         text: 'Volunteer',
         variant: 'default' as const,
         disabled: false,
-        onClick: () => handleVolunteer(item as VolunteerTaskType),
+        onClick: () => {
+          // Convert CombinedItem to VolunteerTaskType with the required properties
+          const volunteerTask: VolunteerTaskType = {
+            id: item.id,
+            title: item.title,
+            date: item.date,
+            location: item.location,
+            description: item.description,
+            category: item.category,
+            starsReward: item.starsReward,
+            spotsAvailable: item.spotsAvailable || 0,
+            spotsTotal: item.spotsTotal || 0,
+            volunteers: item.volunteers || [],
+            duration: item.duration || 0,
+            createdBy: item.createdBy || 'Unknown',
+            creatorId: item.creatorId || '0',
+            isPublished: item.isPublished || true
+          };
+          handleVolunteer(volunteerTask);
+        },
         icon: <Check className="h-4 w-4 mr-1" />
       };
     }
