@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Users } from "lucide-react";
+import { List, ListCheck, Users } from "lucide-react";
 
 // Interface to define the structure of events
 interface Event {
@@ -96,7 +97,7 @@ type VolunteerFormValues = z.infer<typeof volunteerFormSchema>;
 
 const VolunteerManagement: React.FC = () => {
   const { user } = useAuth();
-  const [usersList, setUsersList] = useState<User[]>(mockUsersList);
+  const [usersList, setUsersList] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [volunteerDialogOpen, setVolunteerDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -194,13 +195,6 @@ const VolunteerManagement: React.FC = () => {
         setEvents(allEvents);
       } else {
         // Use mock events if no saved events
-        const mockEvents: Event[] = [
-          { id: '1', title: 'Summer Picnic' },
-          { id: '2', title: 'Board Meeting' },
-          { id: '3', title: 'Children\'s Workshop' },
-          { id: '4', title: 'Annual Gathering' },
-          { id: '5', title: 'Winter Festival' },
-        ];
         setEvents(mockEvents);
         // Save mock events to localStorage
         localStorage.setItem("events", JSON.stringify(mockEvents));
@@ -509,27 +503,39 @@ const VolunteerManagement: React.FC = () => {
 
               {form.watch("volunteerType") === "specific" && (
                 <div className="space-y-4">
-                  <FormLabel className="block text-sm font-medium">Select Events</FormLabel>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-1">
-                    {events.length > 0 ? (
-                      events.map(event => (
-                        <div key={event.id} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`event-${event.id}`} 
-                            checked={(form.watch("eventIds") || []).includes(event.id)} 
-                            onCheckedChange={() => handleEventCheckboxChange(event.id)}
-                          />
-                          <label htmlFor={`event-${event.id}`} className="text-sm">
-                            {event.title}
-                          </label>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-sm text-gray-500 col-span-2 text-center py-4">
-                        No events available
-                      </div>
-                    )}
+                  <div className="flex items-center gap-2 mb-2">
+                    <List className="h-5 w-5" />
+                    <FormLabel className="text-base">Available Events</FormLabel>
                   </div>
+                  
+                  {events.length > 0 ? (
+                    <div className="border rounded-md p-3 max-h-60 overflow-y-auto">
+                      <ul className="space-y-2">
+                        {events.map(event => (
+                          <li key={event.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md">
+                            <Checkbox 
+                              id={`event-${event.id}`} 
+                              checked={(form.watch("eventIds") || []).includes(event.id)} 
+                              onCheckedChange={() => handleEventCheckboxChange(event.id)}
+                            />
+                            <label htmlFor={`event-${event.id}`} className="text-sm font-medium flex-1 cursor-pointer">
+                              {event.title}
+                            </label>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="text-center p-6 border rounded-md bg-gray-50">
+                      <div className="mb-2 flex justify-center">
+                        <ListCheck className="h-10 w-10 text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        No events available. Create events in the Volunteers page.
+                      </p>
+                    </div>
+                  )}
+                  
                   {form.formState.errors.eventIds && (
                     <p className="text-sm text-red-500">Please select at least one event</p>
                   )}
