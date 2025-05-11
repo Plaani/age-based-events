@@ -4,7 +4,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Clock, Users, CheckCircle2, XCircle } from "lucide-react";
+import { CalendarIcon, Clock, Users, CheckCircle2, XCircle, ClipboardCheck, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import EventCalendar from "@/components/dashboard/EventCalendar";
@@ -44,6 +44,37 @@ const familyMembers = [
   { id: 1, name: "Emma Smith", age: 14, relationship: "Daughter" },
   { id: 2, name: "James Smith", age: 10, relationship: "Son" },
   { id: 3, name: "Sarah Johnson", age: 42, relationship: "Spouse" }
+];
+
+// Mock volunteer opportunities
+const volunteerOpportunities = [
+  {
+    id: 1,
+    title: "Community Garden Clean-up",
+    date: "2025-05-20",
+    time: "9:00 AM",
+    location: "Central Park Community Garden",
+    stars: 5,
+    registered: false
+  },
+  {
+    id: 2,
+    title: "Food Bank Distribution",
+    date: "2025-06-05",
+    time: "1:00 PM",
+    location: "City Food Bank",
+    stars: 6,
+    registered: true
+  },
+  {
+    id: 3,
+    title: "After-School Program Assistance",
+    date: "2025-05-28",
+    time: "3:30 PM",
+    location: "Downtown Community Center",
+    stars: 4,
+    registered: false
+  }
 ];
 
 const Dashboard: React.FC = () => {
@@ -110,20 +141,18 @@ const Dashboard: React.FC = () => {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle>Deadlines</CardTitle>
+              <CardTitle>Volunteering</CardTitle>
               <CardDescription>
-                Upcoming registration deadlines
+                Your volunteer activities
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {upcomingEvents.filter(e => !e.registered && new Date(e.deadline) > today).length}
-              </div>
-              <p className="text-sm text-gray-500">approaching deadlines</p>
+              <div className="text-2xl font-bold">{volunteerOpportunities.filter(v => v.registered).length}</div>
+              <p className="text-sm text-gray-500">registered opportunities</p>
             </CardContent>
             <CardFooter>
               <Button variant="outline" size="sm" className="w-full" asChild>
-                <Link to="/events">View Deadlines</Link>
+                <Link to="/volunteers">Find Opportunities</Link>
               </Button>
             </CardFooter>
           </Card>
@@ -212,6 +241,54 @@ const Dashboard: React.FC = () => {
           <CardFooter className="border-t pt-4">
             <Button variant="outline" className="w-full" asChild>
               <Link to="/events">View All Events</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Volunteer Opportunities */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5" />
+              <span>Volunteer Opportunities</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {volunteerOpportunities.length > 0 ? (
+                volunteerOpportunities.map((opportunity) => (
+                  <div key={opportunity.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                    <div className="space-y-1">
+                      <div className="font-medium">{opportunity.title}</div>
+                      <div className="text-sm text-gray-500">
+                        {formatDate(opportunity.date)} at {opportunity.time}
+                      </div>
+                      <div className="flex gap-2 items-center mt-1">
+                        <Badge variant={opportunity.registered ? "default" : "outline"}>
+                          {opportunity.registered ? "Registered" : "Open"}
+                        </Badge>
+                        <div className="flex items-center gap-1">
+                          <Award className="h-3.5 w-3.5 text-amber-500" />
+                          <span className="text-xs">{opportunity.stars} stars</span>
+                        </div>
+                        <span className="text-xs text-gray-500">{opportunity.location}</span>
+                      </div>
+                    </div>
+                    <Button size="sm">
+                      {opportunity.registered ? "View Details" : "Volunteer"}
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  No upcoming volunteer opportunities
+                </div>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="border-t pt-4">
+            <Button variant="outline" className="w-full" asChild>
+              <Link to="/volunteers">View All Opportunities</Link>
             </Button>
           </CardFooter>
         </Card>
