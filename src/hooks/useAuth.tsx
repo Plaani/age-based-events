@@ -12,6 +12,8 @@ export interface User {
   approved: boolean;
   age: number;
   birthdate: string;
+  phone?: string;
+  address?: string;
   familyId?: string;
   isVolunteer?: boolean;
   volunteerFor?: string[]; // Array of event IDs or 'all'
@@ -48,6 +50,8 @@ const mockUsers: User[] = [
     approved: true,
     age: 35,
     birthdate: '1988-05-15',
+    phone: '+46 70 123 4567',
+    address: '123 Admin Street, Stockholm',
     familyId: '101',
     isVolunteer: true,
     volunteerFor: ['all']
@@ -62,6 +66,8 @@ const mockUsers: User[] = [
     approved: true,
     age: 28,
     birthdate: '1995-10-23',
+    phone: '+46 73 987 6543',
+    address: '456 User Avenue, Gothenburg',
     familyId: '102',
     isVolunteer: true,
     volunteerFor: ['1', '3'] // Volunteer for specific events
