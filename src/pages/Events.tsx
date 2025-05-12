@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -321,6 +322,8 @@ const FamilyLimitPopover: React.FC<{ familyLimit: FamilyLimit }> = ({ familyLimi
 
 const Events: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [ageFilter, setAgeFilter] = useState("All");
@@ -328,7 +331,30 @@ const Events: React.FC = () => {
   const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState("available");
   
+  // Get tab from URL params on component mount
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'registered' || tab === 'volunteer') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+  
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    
+    // Update URL parameters
+    if (value !== 'available') {
+      setSearchParams({ tab: value });
+    } else {
+      // Remove the tab parameter for the default tab
+      searchParams.delete('tab');
+      setSearchParams(searchParams);
+    }
+  };
+
   // Format date function for the main component
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -505,6 +531,8 @@ const Events: React.FC = () => {
               events={calendarEvents} 
               onDateSelect={handleDateSelect}
               isInteractive={true}
+              viewMode={activeTab as 'all' | 'registered' | 'volunteer'}
+              linkDestination="/events"
             />
           </div>
           
@@ -578,10 +606,11 @@ const Events: React.FC = () => {
         </div>
 
         {/* Events Tabs */}
-        <Tabs defaultValue="available" className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="available">Available Events</TabsTrigger>
             <TabsTrigger value="registered">Registered Events</TabsTrigger>
+            <TabsTrigger value="volunteer">Volunteer Opportunities</TabsTrigger>
           </TabsList>
           
           <TabsContent value="available">
@@ -711,6 +740,21 @@ const Events: React.FC = () => {
                 </p>
               </div>
             )}
+          </TabsContent>
+          
+          <TabsContent value="volunteer">
+            <div className="text-center py-12 border rounded-md bg-gray-50">
+              <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <Users className="h-6 w-6 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900">Volunteer Opportunities</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                This section will show volunteer opportunities. Coming soon!
+              </p>
+              <Button className="mt-4" onClick={() => navigate('/volunteers')}>
+                Go to Volunteer Dashboard
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

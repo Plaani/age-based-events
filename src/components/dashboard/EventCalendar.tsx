@@ -19,12 +19,16 @@ interface EventCalendarProps {
   events: Event[];
   onDateSelect?: (date: Date) => void;
   isInteractive?: boolean;
+  viewMode?: 'all' | 'registered' | 'volunteer';
+  linkDestination?: string;
 }
 
 const EventCalendar: React.FC<EventCalendarProps> = ({ 
   events, 
   onDateSelect,
-  isInteractive = false
+  isInteractive = false,
+  viewMode = 'all',
+  linkDestination = '/events'
 }) => {
   const eventDates = useMemo(() => {
     return events.reduce((acc, event) => {
@@ -75,6 +79,30 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
     );
   };
 
+  // Generate the appropriate link based on the viewMode
+  const getLinkWithFilter = () => {
+    switch (viewMode) {
+      case 'registered':
+        return `${linkDestination}?tab=registered`;
+      case 'volunteer':
+        return `${linkDestination}?tab=volunteer`;
+      default:
+        return linkDestination;
+    }
+  };
+  
+  // Get the appropriate button text based on viewMode
+  const getButtonText = () => {
+    switch (viewMode) {
+      case 'registered':
+        return "View My Events";
+      case 'volunteer':
+        return "View Volunteer Events";
+      default:
+        return "View All Events";
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -84,7 +112,7 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
             <span>Event Calendar</span>
           </CardTitle>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/events">View All Events</Link>
+            <Link to={getLinkWithFilter()}>{getButtonText()}</Link>
           </Button>
         </div>
       </CardHeader>
