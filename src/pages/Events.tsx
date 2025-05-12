@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Users, Clock, Filter } from "lucide-react";
+import EventCalendar from "@/components/dashboard/EventCalendar";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
@@ -326,6 +327,7 @@ const Events: React.FC = () => {
   const [events, setEvents] = useState<Event[]>(mockEvents);
   const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   
   // Format date function for the main component
   const formatDate = (dateString: string) => {
@@ -336,6 +338,30 @@ const Events: React.FC = () => {
       day: 'numeric' 
     });
   };
+
+  // Handle date selection from calendar
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    // Convert the selected date to a string format matching our events' date format
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
+    // Filter events for this date
+    setSearchTerm("");
+    setCategoryFilter("All");
+    setAgeFilter("All");
+  };
+
+  // Map events for calendar
+  const calendarEvents = events.map(event => ({
+    id: event.id,
+    title: event.title,
+    date: event.date,
+    registered: event.registered,
+    targetAge: event.ageRange
+  }));
 
   // Filter events based on search term, category, and age
   const filteredEvents = events.filter(event => {
@@ -350,7 +376,12 @@ const Events: React.FC = () => {
                       (ageFilter === "Adults" && (event.ageRange.includes("18") || event.ageRange.includes("All"))) ||
                       (ageFilter === "Seniors" && event.ageRange.includes("65+"));
     
-    return matchesSearch && matchesCategory && matchesAge;
+    // Filter by selected date if one is set
+    const matchesDate = !selectedDate || event.date.includes(
+      `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
+    );
+    
+    return matchesSearch && matchesCategory && matchesAge && matchesDate;
   });
 
   const registeredEvents = filteredEvents.filter(event => event.registered);
@@ -466,43 +497,83 @@ const Events: React.FC = () => {
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search events..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
+        {/* Top section with calendar and filters */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Left: Calendar */}
+          <div className="md:col-span-1">
+            <EventCalendar 
+              events={calendarEvents} 
+              onDateSelect={handleDateSelect}
+              isInteractive={true}
             />
           </div>
-          <div className="flex gap-2">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Categories</SelectItem>
-                <SelectItem value="Sports">Sports</SelectItem>
-                <SelectItem value="Education">Education</SelectItem>
-                <SelectItem value="Social">Social</SelectItem>
-                <SelectItem value="Arts">Arts</SelectItem>
-                <SelectItem value="Games">Games</SelectItem>
-              </SelectContent>
-            </Select>
+          
+          {/* Right: Filters */}
+          <div className="md:col-span-2">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Find Events</CardTitle>
+                <CardDescription>
+                  Filter events by keyword, category, or age group
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <Input
+                      placeholder="Search events..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="All">All Categories</SelectItem>
+                        <SelectItem value="Sports">Sports</SelectItem>
+                        <SelectItem value="Education">Education</SelectItem>
+                        <SelectItem value="Social">Social</SelectItem>
+                        <SelectItem value="Arts">Arts</SelectItem>
+                        <SelectItem value="Games">Games</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-            <Select value={ageFilter} onValueChange={setAgeFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Age Group" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Ages</SelectItem>
-                <SelectItem value="Children">Children (5-12)</SelectItem>
-                <SelectItem value="Teens">Teens (13-17)</SelectItem>
-                <SelectItem value="Adults">Adults (18+)</SelectItem>
-                <SelectItem value="Seniors">Seniors (65+)</SelectItem>
-              </SelectContent>
-            </Select>
+                    <Select value={ageFilter} onValueChange={setAgeFilter}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Age Group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="All">All Ages</SelectItem>
+                        <SelectItem value="Children">Children (5-12)</SelectItem>
+                        <SelectItem value="Teens">Teens (13-17)</SelectItem>
+                        <SelectItem value="Adults">Adults (18+)</SelectItem>
+                        <SelectItem value="Seniors">Seniors (65+)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {selectedDate && (
+                    <div className="flex items-center justify-between bg-primary/10 p-2 rounded-md">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2 text-primary" />
+                        <span>Filtering by date: {selectedDate.toLocaleDateString()}</span>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setSelectedDate(undefined)}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
