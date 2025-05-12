@@ -4,7 +4,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Clock, Users, CheckCircle2, XCircle, ClipboardCheck, Award } from "lucide-react";
+import { CalendarIcon, Clock, Users, CheckCircle2, XCircle, ClipboardCheck, Award, UserCircle, Mail, Phone, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import EventCalendar from "@/components/dashboard/EventCalendar";
@@ -102,6 +102,45 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
 
+        {/* Profile Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserCircle className="h-5 w-5" />
+              <span>Profile</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+              <div className="h-24 w-24 rounded-full bg-brand-100 flex items-center justify-center">
+                <UserCircle className="h-16 w-16 text-brand-700" />
+              </div>
+              <div className="space-y-2 flex-1">
+                <h3 className="text-xl font-semibold">{user.firstName} {user.lastName}</h3>
+                <div className="space-y-1 text-gray-600">
+                  <p className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <span>{user.email}</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    <span>{user.phone || "No phone number added"}</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    <span>{user.address || "No address added"}</span>
+                  </p>
+                </div>
+              </div>
+              <div>
+                <Button asChild>
+                  <Link to="/profile">Edit Profile</Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
@@ -193,9 +232,12 @@ const Dashboard: React.FC = () => {
                 )}
               </div>
             </CardContent>
-            <CardFooter className="border-t pt-4">
-              <Button variant="outline" className="w-full" asChild>
+            <CardFooter className="border-t pt-4 flex justify-between">
+              <Button variant="outline" asChild>
                 <Link to="/family">Manage Family</Link>
+              </Button>
+              <Button>
+                Add Family Member
               </Button>
             </CardFooter>
           </Card>

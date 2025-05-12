@@ -16,8 +16,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: Home },
     { name: "Events", href: "/events", icon: Calendar },
-    { name: "Family", href: "/family", icon: Users },
-    { name: "Profile", href: "/profile", icon: UserCircle },
     { name: "Admin Panel", href: "/admin", icon: Settings, adminOnly: true },
   ];
 
