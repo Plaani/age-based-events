@@ -333,13 +333,23 @@ const Events: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("available");
   
-  // Get tab from URL params on component mount
+  // Get params from URL on component mount
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab === 'registered' || tab === 'volunteer') {
       setActiveTab(tab);
     }
-  }, [searchParams]);
+    
+    // Check for eventId parameter
+    const eventId = searchParams.get('eventId');
+    if (eventId) {
+      const event = events.find(e => e.id.toString() === eventId);
+      if (event) {
+        setSelectedEvent(event);
+        setRegistrationDialogOpen(true);
+      }
+    }
+  }, [searchParams, events]);
   
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -421,6 +431,12 @@ const Events: React.FC = () => {
   const closeRegistrationDialog = () => {
     setRegistrationDialogOpen(false);
     setSelectedEvent(null);
+    
+    // Remove eventId from URL if it exists
+    if (searchParams.has('eventId')) {
+      searchParams.delete('eventId');
+      setSearchParams(searchParams);
+    }
   };
 
   const handleRegister = (eventId: string, includeFamily: boolean, familyMembers?: number) => {

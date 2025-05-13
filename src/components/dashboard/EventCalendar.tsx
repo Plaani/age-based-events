@@ -1,11 +1,13 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CalendarIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import DayEventsList from './DayEventsList';
 
 interface Event {
   id: number | string;
@@ -30,6 +32,9 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
   viewMode = 'all',
   linkDestination = '/events'
 }) => {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showEventsDialog, setShowEventsDialog] = useState(false);
+  
   const eventDates = useMemo(() => {
     return events.reduce((acc, event) => {
       const date = new Date(event.date);
@@ -50,8 +55,20 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
   
   // Handle date selection (for creating new events)
   const handleDateSelect = (date: Date | undefined) => {
-    if (date && onDateSelect && isInteractive) {
-      onDateSelect(date);
+    if (date) {
+      setSelectedDate(date);
+      
+      // Check if there are events on this day
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const hasEvents = eventDates[dateStr] && eventDates[dateStr].length > 0;
+      
+      if (hasEvents) {
+        // Show events dialog
+        setShowEventsDialog(true);
+      } else if (onDateSelect && isInteractive) {
+        // Original handler for creating events
+        onDateSelect(date);
+      }
     }
   };
   
@@ -103,6 +120,14 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
     }
   };
 
+  // Get events for the selected date
+  const getEventsForSelectedDate = () => {
+    if (!selectedDate) return [];
+    
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    return eventDates[dateStr] || [];
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -143,6 +168,21 @@ const EventCalendar: React.FC<EventCalendarProps> = ({
           </div>
         </div>
       </CardContent>
+
+      {/* Dialog for showing events on selected date */}
+      <Dialog open={showEventsDialog} onOpenChange={setShowEventsDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              Events on {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <DayEventsList 
+            events={getEventsForSelectedDate()} 
+            onClose={() => setShowEventsDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
