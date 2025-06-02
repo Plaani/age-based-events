@@ -30,16 +30,16 @@ const EventFilters: React.FC<EventFiltersProps> = ({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle>Find Events</CardTitle>
+        <CardTitle>Otsi üritusi</CardTitle>
         <CardDescription>
-          Filter events by keyword, category, or age group
+          Filtreeri üritusi märksõna, kategooria või vanusegrupi järgi
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-4">
           <div>
             <Input
-              placeholder="Search events..."
+              placeholder="Otsi üritusi..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full"
@@ -48,28 +48,28 @@ const EventFilters: React.FC<EventFiltersProps> = ({
           <div className="flex flex-col sm:flex-row gap-4">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Category" />
+                <SelectValue placeholder="Kategooria" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All">All Categories</SelectItem>
-                <SelectItem value="Sports">Sports</SelectItem>
-                <SelectItem value="Education">Education</SelectItem>
-                <SelectItem value="Social">Social</SelectItem>
-                <SelectItem value="Arts">Arts</SelectItem>
-                <SelectItem value="Games">Games</SelectItem>
+                <SelectItem value="All">Kõik kategooriad</SelectItem>
+                <SelectItem value="Sports">Sport</SelectItem>
+                <SelectItem value="Education">Haridus</SelectItem>
+                <SelectItem value="Social">Suhtlus</SelectItem>
+                <SelectItem value="Arts">Kunst</SelectItem>
+                <SelectItem value="Games">Mängud</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={ageFilter} onValueChange={setAgeFilter}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Age Group" />
+                <SelectValue placeholder="Vanusegrupp" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All">All Ages</SelectItem>
-                <SelectItem value="Children">Children (5-12)</SelectItem>
-                <SelectItem value="Teens">Teens (13-17)</SelectItem>
-                <SelectItem value="Adults">Adults (18+)</SelectItem>
-                <SelectItem value="Seniors">Seniors (65+)</SelectItem>
+                <SelectItem value="All">Kõik vanused</SelectItem>
+                <SelectItem value="Children">Lapsed (5-12)</SelectItem>
+                <SelectItem value="Teens">Noored (13-17)</SelectItem>
+                <SelectItem value="Adults">Täiskasvanud (18+)</SelectItem>
+                <SelectItem value="Seniors">Vanemad (65+)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -78,14 +78,14 @@ const EventFilters: React.FC<EventFiltersProps> = ({
             <div className="flex items-center justify-between bg-primary/10 p-2 rounded-md">
               <div className="flex items-center">
                 <Calendar className="h-4 w-4 mr-2 text-primary" />
-                <span>Filtering by date: {selectedDate.toLocaleDateString()}</span>
+                <span>Filtreerimine kuupäeva järgi: {selectedDate.toLocaleDateString('et-EE')}</span>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={() => setSelectedDate(undefined)}
               >
-                Clear
+                Tühista
               </Button>
             </div>
           )}

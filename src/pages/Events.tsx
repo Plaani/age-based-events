@@ -234,9 +234,9 @@ const Events: React.FC = () => {
     <MainLayout>
       <div className="space-y-6">
         <div className="flex flex-col gap-4">
-          <h1 className="text-3xl font-bold tracking-tight">Events & Activities</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Üritused ja tegevused</h1>
           <p className="text-gray-500">
-            Browse and register for upcoming events
+            Sirvi ja registreeru tulemiväa üritustele
           </p>
         </div>
 
@@ -271,9 +271,9 @@ const Events: React.FC = () => {
         {/* Events Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="mb-6">
-            <TabsTrigger value="available">Available Events</TabsTrigger>
-            <TabsTrigger value="registered">Registered Events</TabsTrigger>
-            <TabsTrigger value="volunteer">Volunteer Opportunities</TabsTrigger>
+            <TabsTrigger value="available">Saadaolevad üritused</TabsTrigger>
+            <TabsTrigger value="registered">Registreeritud üritused</TabsTrigger>
+            <TabsTrigger value="volunteer">Vabatahtlik töö</TabsTrigger>
           </TabsList>
           
           <TabsContent value="available">

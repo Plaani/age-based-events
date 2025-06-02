@@ -15,23 +15,23 @@ const EmptyState: React.FC<EmptyStateProps> = ({ type }) => {
   const config = {
     available: {
       icon: <Calendar className="h-6 w-6 text-gray-400" />,
-      title: "No events found",
-      description: "Try adjusting your filters to find events",
+      title: "Üritusi ei leitud",
+      description: "Proovi filtreid muuta, et leida üritusi",
       button: null
     },
     registered: {
       icon: <Calendar className="h-6 w-6 text-gray-400" />,
-      title: "No registered events",
-      description: "You haven't registered for any events yet",
+      title: "Pole registreeritud üritusi",
+      description: "Sa pole veel ühelegi üritusele registreerunud",
       button: null
     },
     volunteer: {
       icon: <Users className="h-6 w-6 text-gray-400" />,
-      title: "Volunteer Opportunities",
-      description: "This section will show volunteer opportunities. Coming soon!",
+      title: "Vabatahtliku töö võimalused",
+      description: "Siin kuvatakse vabatahtliku töö võimalused. Tulekul!",
       button: (
         <Button className="mt-4" onClick={() => navigate('/volunteers')}>
-          Go to Volunteer Dashboard
+          Mine vabatahtlike töölauaga
         </Button>
       )
     }
