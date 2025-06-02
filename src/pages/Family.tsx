@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -24,7 +24,7 @@ const mockFamilyMembers = [
     firstName: "Emma", 
     lastName: "Smith", 
     age: 14, 
-    relationship: "Daughter",
+    relationship: "Tütar",
     shareRegistrations: true,
     sharePurchases: false
   },
@@ -34,7 +34,7 @@ const mockFamilyMembers = [
     firstName: "James", 
     lastName: "Smith", 
     age: 10, 
-    relationship: "Son",
+    relationship: "Poeg",
     shareRegistrations: true,
     sharePurchases: true
   },
@@ -44,7 +44,7 @@ const mockFamilyMembers = [
     firstName: "Sarah", 
     lastName: "Johnson", 
     age: 42, 
-    relationship: "Spouse",
+    relationship: "Abikaasa",
     shareRegistrations: true,
     sharePurchases: true
   }
@@ -52,16 +52,16 @@ const mockFamilyMembers = [
 
 const formSchema = z.object({
   nationalId: z.string().min(10, {
-    message: "National ID must be at least 10 characters.",
+    message: "Isikukood peab olema vähemalt 10 märki.",
   }),
   firstName: z.string().min(1, {
-    message: "First name is required.",
+    message: "Eesnimi on kohustuslik.",
   }),
   lastName: z.string().min(1, {
-    message: "Last name is required.",
+    message: "Perekonnanimi on kohustuslik.",
   }),
   relationship: z.string().min(1, {
-    message: "Relationship is required.",
+    message: "Sugulus on kohustuslik.",
   }),
   shareRegistrations: z.boolean().default(true),
   sharePurchases: z.boolean().default(false),
@@ -84,13 +84,23 @@ const Family: React.FC = () => {
     },
   });
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900">Palun logi sisse</h2>
+            <p className="mt-2 text-gray-600">Perekonna haldamiseks peate olema sisse logitud.</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // In a real app, you would send this to your API
     const newMember = {
       id: String(Math.floor(Math.random() * 1000)),
       nationalId: values.nationalId,
@@ -107,8 +117,8 @@ const Family: React.FC = () => {
     form.reset();
     
     toast({
-      title: "Family member added",
-      description: `${newMember.firstName} has been added to your family group.`,
+      title: "Pereliige lisatud",
+      description: `${newMember.firstName} on lisatud teie perekonda.`,
     });
   };
 
@@ -117,8 +127,8 @@ const Family: React.FC = () => {
     setFamilyMembers(familyMembers.filter(member => member.id !== id));
     
     toast({
-      title: "Family member removed",
-      description: `${memberToRemove?.firstName} has been removed from your family group.`,
+      title: "Pereliige eemaldatud",
+      description: `${memberToRemove?.firstName} on teie perekonnast eemaldatud.`,
     });
   };
 
@@ -131,12 +141,12 @@ const Family: React.FC = () => {
     }));
     
     const member = familyMembers.find(m => m.id === id);
-    const action = option === "shareRegistrations" ? "event registrations" : "purchases";
+    const action = option === "shareRegistrations" ? "ürituste registreerimisi" : "ostude nähtavust";
     const newValue = !member?.[option];
     
     toast({
-      title: "Sharing preference updated",
-      description: `${member?.firstName} will ${newValue ? 'now' : 'no longer'} share ${action}.`,
+      title: "Jagamise eelistus uuendatud",
+      description: `${member?.firstName} ${newValue ? 'jagab nüüd' : 'ei jaga enam'} ${action}.`,
     });
   };
 
@@ -145,14 +155,14 @@ const Family: React.FC = () => {
       <div className="space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Family Management</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Perekonna Haldamine</h1>
             <p className="text-gray-500 mt-2">
-              Manage your family members and their sharing preferences
+              Hallake oma pereliikmed ja nende jagamise eelistused
             </p>
           </div>
           <Button onClick={() => setIsAddDialogOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
-            Add Family Member
+            Lisa Pereliige
           </Button>
         </div>
 
@@ -168,14 +178,14 @@ const Family: React.FC = () => {
                     </CardTitle>
                     <Badge>{member.relationship}</Badge>
                   </div>
-                  <CardDescription>National ID: {member.nationalId}</CardDescription>
+                  <CardDescription>Isikukood: {member.nationalId}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <CalendarClock className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">Age: {member.age} years</span>
+                        <span className="text-sm">Vanus: {member.age} aastat</span>
                       </div>
                     </div>
                     
@@ -183,7 +193,7 @@ const Family: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <Share2 className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">Share Event Registrations</span>
+                          <span className="text-sm">Jaga Ürituste Registreerimisi</span>
                         </div>
                         <Switch 
                           checked={member.shareRegistrations} 
@@ -194,7 +204,7 @@ const Family: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <Eye className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">Share Purchase Visibility</span>
+                          <span className="text-sm">Jaga Ostude Nähtavust</span>
                         </div>
                         <Switch 
                           checked={member.sharePurchases} 
@@ -207,7 +217,7 @@ const Family: React.FC = () => {
                 <CardFooter className="border-t pt-4 flex justify-between">
                   <Button variant="outline" size="sm">
                     <Settings className="mr-2 h-3 w-3" />
-                    Edit
+                    Muuda
                   </Button>
                   <Button 
                     variant="destructive" 
@@ -215,7 +225,7 @@ const Family: React.FC = () => {
                     onClick={() => handleRemoveMember(member.id)}
                   >
                     <Trash2 className="mr-2 h-3 w-3" />
-                    Remove
+                    Eemalda
                   </Button>
                 </CardFooter>
               </Card>
@@ -226,13 +236,13 @@ const Family: React.FC = () => {
             <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
               <Users className="h-6 w-6 text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900">No family members</h3>
+            <h3 className="text-lg font-medium text-gray-900">Pereliikmeid pole</h3>
             <p className="mt-1 text-sm text-gray-500 max-w-md mx-auto">
-              Add family members to start managing events for your entire family
+              Lisage pereliikmed, et alustada kogu perekonna ürituste haldamist
             </p>
             <Button className="mt-6" onClick={() => setIsAddDialogOpen(true)}>
               <UserPlus className="mr-2 h-4 w-4" />
-              Add Family Member
+              Lisa Pereliige
             </Button>
           </div>
         )}
@@ -242,9 +252,9 @@ const Family: React.FC = () => {
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add Family Member</DialogTitle>
+            <DialogTitle>Lisa Pereliige</DialogTitle>
             <DialogDescription>
-              Enter the details of your family member to add them to your group.
+              Sisestage oma pereliikme andmed, et lisada ta perekonda.
             </DialogDescription>
           </DialogHeader>
 
@@ -255,12 +265,12 @@ const Family: React.FC = () => {
                 name="nationalId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>National ID</FormLabel>
+                    <FormLabel>Isikukood</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter National ID" {...field} />
+                      <Input placeholder="Sisestage isikukood" {...field} />
                     </FormControl>
                     <FormDescription>
-                      The national ID is used for verification and age calculation.
+                      Isikukoodi kasutatakse kontrollimiseks ja vanuse arvutamiseks.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -273,9 +283,9 @@ const Family: React.FC = () => {
                   name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First Name</FormLabel>
+                      <FormLabel>Eesnimi</FormLabel>
                       <FormControl>
-                        <Input placeholder="First Name" {...field} />
+                        <Input placeholder="Eesnimi" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -287,9 +297,9 @@ const Family: React.FC = () => {
                   name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel>Perekonnanimi</FormLabel>
                       <FormControl>
-                        <Input placeholder="Last Name" {...field} />
+                        <Input placeholder="Perekonnanimi" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -302,22 +312,24 @@ const Family: React.FC = () => {
                 name="relationship"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Relationship</FormLabel>
+                    <FormLabel>Sugulus</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select relationship" />
+                          <SelectValue placeholder="Valige sugulus" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Spouse">Spouse</SelectItem>
-                        <SelectItem value="Child">Child</SelectItem>
-                        <SelectItem value="Parent">Parent</SelectItem>
-                        <SelectItem value="Sibling">Sibling</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="Abikaasa">Abikaasa</SelectItem>
+                        <SelectItem value="Laps">Laps</SelectItem>
+                        <SelectItem value="Tütar">Tütar</SelectItem>
+                        <SelectItem value="Poeg">Poeg</SelectItem>
+                        <SelectItem value="Vanem">Vanem</SelectItem>
+                        <SelectItem value="Õde/vend">Õde/vend</SelectItem>
+                        <SelectItem value="Muu">Muu</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -332,10 +344,10 @@ const Family: React.FC = () => {
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                        Share Event Registrations
+                        Jaga Ürituste Registreerimisi
                       </FormLabel>
                       <FormDescription>
-                        Allow this family member to see your event registrations
+                        Lubage sellel pereliikmel näha teie ürituste registreerimisi
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -355,10 +367,10 @@ const Family: React.FC = () => {
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                        Share Purchase Visibility
+                        Jaga Ostude Nähtavust
                       </FormLabel>
                       <FormDescription>
-                        Allow this family member to see your purchases
+                        Lubage sellel pereliikmel näha teie ostude ajalugu
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -373,9 +385,9 @@ const Family: React.FC = () => {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
+                  Tühista
                 </Button>
-                <Button type="submit">Add Family Member</Button>
+                <Button type="submit">Lisa Pereliige</Button>
               </DialogFooter>
             </form>
           </Form>
