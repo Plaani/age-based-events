@@ -14,18 +14,18 @@ const Index = () => {
           <div className="flex flex-col items-center space-y-6 text-center">
             <div className="space-y-2">
               <h1 className="text-4xl md:text-6xl font-bold tracking-tighter text-brand-700">
-                Age-Based Event Registration
+                Tartu Pereliit
               </h1>
               <p className="max-w-[700px] text-gray-500 md:text-xl/relaxed">
-                Book events and activities for you and your family with our simple, streamlined platform
+                Registreerige üritustele ja tegevustele kogu perega meie lihtsa ja sujuva platvormi kaudu
               </p>
             </div>
             <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
               <Button size="lg" asChild>
-                <Link to="/login">Sign In</Link>
+                <Link to="/login">Logi sisse</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link to="/register">Register Now</Link>
+                <Link to="/register">Registreeru</Link>
               </Button>
             </div>
           </div>
@@ -39,11 +39,11 @@ const Index = () => {
             <Card className="dashboard-card">
               <CardHeader className="pb-2">
                 <Calendar className="h-12 w-12 text-brand-600" />
-                <CardTitle>Event Booking</CardTitle>
+                <CardTitle>Ürituste broneerimine</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Browse and book age-appropriate events with ease
+                  Sirvige ja broneerige vanusele sobivaid üritusi lihtsalt
                 </CardDescription>
               </CardContent>
             </Card>
@@ -51,11 +51,11 @@ const Index = () => {
             <Card className="dashboard-card">
               <CardHeader className="pb-2">
                 <Users className="h-12 w-12 text-brand-600" />
-                <CardTitle>Family Management</CardTitle>
+                <CardTitle>Perekonna haldamine</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Register once and include your entire family
+                  Registreeruge korra ja kaasake kogu oma perekond
                 </CardDescription>
               </CardContent>
             </Card>
@@ -63,11 +63,11 @@ const Index = () => {
             <Card className="dashboard-card">
               <CardHeader className="pb-2">
                 <Clock className="h-12 w-12 text-brand-600" />
-                <CardTitle>Deadline Tracking</CardTitle>
+                <CardTitle>Tähtaegade jälgimine</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Stay on top of registration deadlines with reminders
+                  Püsige registreerimise tähtaegadega kursis meeldetuletuste abil
                 </CardDescription>
               </CardContent>
             </Card>
@@ -75,11 +75,11 @@ const Index = () => {
             <Card className="dashboard-card">
               <CardHeader className="pb-2">
                 <CheckCircle className="h-12 w-12 text-brand-600" />
-                <CardTitle>Eligibility Verification</CardTitle>
+                <CardTitle>Sobivuse kontrollimine</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Secure verification through national ID
+                  Turvaline kontroll isikukoodi kaudu
                 </CardDescription>
               </CardContent>
             </Card>
@@ -93,15 +93,15 @@ const Index = () => {
           <div className="flex flex-col items-center space-y-6 text-center">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">
-                Ready to get started?
+                Valmis alustama?
               </h2>
               <p className="max-w-[600px] text-gray-500 md:text-xl/relaxed">
-                Join our platform today and start exploring events for you and your family.
+                Liituge meie platvormiga juba täna ja alustage ürituste avastamist kogu perega.
               </p>
             </div>
             <div className="w-full max-w-sm space-y-2">
               <Button className="w-full" size="lg" asChild>
-                <Link to="/register">Register Now</Link>
+                <Link to="/register">Registreeru kohe</Link>
               </Button>
             </div>
           </div>
@@ -112,7 +112,7 @@ const Index = () => {
       <footer className="border-t py-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-20 md:flex-row">
           <p className="text-center text-sm leading-loose text-gray-500 md:text-left">
-            © 2025 EventAge. All rights reserved.
+            © 2025 Tartu Pereliit. Kõik õigused kaitstud.
           </p>
         </div>
       </footer>
