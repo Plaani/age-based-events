@@ -17,197 +17,12 @@ import VolunteerTask, { Volunteer, VolunteerTask as VolunteerTaskType } from "@/
 import { Award, CalendarDays, ClipboardCheck, Filter, MapPin, Plus, Star, Clock, ChevronDown, Calendar as CalendarIcon, Users, UserPlus, Check, X, Ban } from "lucide-react";
 import { format, isPast, parseISO, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
-
-// Mock data for volunteer tasks
-const mockTasks: VolunteerTaskType[] = [
-  {
-    id: "1",
-    title: "Community Garden Clean-up",
-    description: "Help clean and prepare the community garden for spring planting. Tools and refreshments provided.",
-    date: new Date(2025, 5, 15),
-    location: "Central Park Community Garden",
-    duration: 3,
-    spotsAvailable: 5,
-    spotsTotal: 10,
-    starsReward: 5,
-    category: "Environment",
-    volunteers: [
-      { id: "1", name: "Robert Wilson", nationalId: "6705142345" },
-      { id: "2", name: "Linda Johnson", nationalId: "7809124567" },
-      { id: "3", name: "Michael Brown", nationalId: "9102056789" },
-      { id: "4", name: "Sarah Davis", nationalId: "8501234567" },
-      { id: "5", name: "Thomas Miller", nationalId: "9003123456" },
-    ],
-    createdBy: "Admin User",
-    creatorId: "1",
-    isPublished: true
-  },
-  {
-    id: "2",
-    title: "Food Bank Distribution",
-    description: "Help sort and distribute food packages to families in need. No experience required.",
-    date: new Date(2025, 5, 20),
-    location: "City Food Bank",
-    duration: 4,
-    spotsAvailable: 3,
-    spotsTotal: 8,
-    starsReward: 6,
-    category: "Community Service",
-    volunteers: [
-      { id: "1", name: "Robert Wilson", nationalId: "6705142345" },
-      { id: "6", name: "Emma Clark", nationalId: "8712090123" },
-      { id: "7", name: "James Wilson", nationalId: "8806121234" },
-      { id: "8", name: "Emily Taylor", nationalId: "9205043456" },
-      { id: "9", name: "Daniel White", nationalId: "7701023456" },
-    ],
-    createdBy: "Regular User",
-    creatorId: "2",
-    isPublished: true
-  },
-  {
-    id: "3",
-    title: "After-School Program Assistance",
-    description: "Help children with homework and participate in educational activities at the community center.",
-    date: new Date(2025, 5, 25),
-    location: "Downtown Community Center",
-    duration: 2,
-    spotsAvailable: 2,
-    spotsTotal: 6,
-    starsReward: 4,
-    category: "Education",
-    volunteers: [
-      { id: "2", name: "Linda Johnson", nationalId: "7809124567" },
-      { id: "6", name: "Emma Clark", nationalId: "8712090123" },
-      { id: "10", name: "Olivia Martinez", nationalId: "9103056789" },
-      { id: "11", name: "William Anderson", nationalId: "8407089012" },
-    ],
-    createdBy: "Admin User",
-    creatorId: "1",
-    isPublished: true
-  },
-  {
-    id: "4",
-    title: "Senior Home Visit",
-    description: "Spend time with elderly residents. Activities include reading, playing games, and general companionship.",
-    date: new Date(2025, 6, 5),
-    location: "Golden Years Residence",
-    duration: 2,
-    spotsAvailable: 4,
-    spotsTotal: 4,
-    starsReward: 3,
-    category: "Healthcare",
-    volunteers: [],
-    createdBy: "Regular User",
-    creatorId: "2",
-    isPublished: true
-  },
-  {
-    id: "5",
-    title: "Community Festival Setup",
-    description: "Help set up booths, decorations, and equipment for the annual community festival.",
-    date: new Date(2025, 6, 10),
-    location: "City Square",
-    duration: 5,
-    spotsAvailable: 0,
-    spotsTotal: 15,
-    starsReward: 7,
-    category: "Event",
-    volunteers: [
-      { id: "1", name: "Robert Wilson", nationalId: "6705142345" },
-      { id: "2", name: "Linda Johnson", nationalId: "7809124567" },
-      { id: "3", name: "Michael Brown", nationalId: "9102056789" },
-      { id: "4", name: "Sarah Davis", nationalId: "8501234567" },
-      { id: "5", name: "Thomas Miller", nationalId: "9003123456" },
-      { id: "6", name: "Emma Clark", nationalId: "8712090123" },
-      { id: "7", name: "James Wilson", nationalId: "8806121234" },
-      { id: "8", name: "Emily Taylor", nationalId: "9205043456" },
-      { id: "9", name: "Daniel White", nationalId: "7701023456" },
-      { id: "10", name: "Olivia Martinez", nationalId: "9103056789" },
-      { id: "11", name: "William Anderson", nationalId: "8407089012" },
-      { id: "12", name: "Sophia Garcia", nationalId: "8903124567" },
-      { id: "13", name: "Benjamin Moore", nationalId: "9008076543" },
-      { id: "14", name: "Ava Wilson", nationalId: "8512093456" },
-      { id: "15", name: "Alexander Lee", nationalId: "8307056789" }
-    ],
-    createdBy: "Admin User",
-    creatorId: "1",
-    isPublished: false
-  }
-];
-
-// Mock user volunteer history
-const mockUserVolunteering = [
-  {
-    taskId: "1",
-    taskTitle: "Community Garden Clean-up",
-    date: new Date(2025, 5, 15),
-    starsEarned: 5,
-    status: "upcoming"
-  },
-  {
-    taskId: "2",
-    taskTitle: "Food Bank Distribution",
-    date: new Date(2025, 5, 20),
-    starsEarned: 6,
-    status: "upcoming"
-  },
-  {
-    taskId: "old-1",
-    taskTitle: "Winter Clothing Drive",
-    date: new Date(2025, 2, 10),
-    starsEarned: 4,
-    status: "completed"
-  },
-  {
-    taskId: "old-2",
-    taskTitle: "Children's Hospital Visit",
-    date: new Date(2025, 4, 5),
-    starsEarned: 3,
-    status: "completed"
-  }
-];
-
-// Define the event type to include the registered property
-interface EventItem {
-  id: string;
-  title: string;
-  date: Date;
-  location: string;
-  description: string;
-  category: string;
-  registered: boolean;
-}
-
-// Mock events data - added for collapsing with volunteer opportunities
-const mockEvents: EventItem[] = [
-  {
-    id: "event-1",
-    title: "Summer Picnic",
-    date: new Date(2025, 5, 15),
-    location: "Central Park",
-    description: "Annual summer picnic for all members and their families",
-    category: "Community Event",
-    registered: true,
-  },
-  {
-    id: "event-2",
-    title: "Board Meeting",
-    date: new Date(2025, 5, 20),
-    location: "Conference Room A",
-    description: "Quarterly board meeting to discuss finances and upcoming events",
-    category: "Meeting",
-    registered: false,
-  },
-  {
-    id: "event-3",
-    title: "Children's Workshop",
-    date: new Date(2025, 6, 5),
-    location: "Activity Room B",
-    description: "Fun activities and crafts for children aged 5-12",
-    category: "Workshop",
-    registered: false,
-  }
-];
+import {
+  volunteerTasks as mockTasks,
+  userVolunteerHistory as mockUserVolunteering,
+  events as dbEvents,
+  familyMembers as dbFamilyMembers
+} from "@/data/mockDatabase";
 
 const categories = [
   "All Categories",
@@ -260,7 +75,17 @@ const Volunteers: React.FC = () => {
   const [tasks, setTasks] = useState<VolunteerTaskType[]>(mockTasks);
   const [myTasks] = useState(mockUserVolunteering);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [events] = useState<EventItem[]>(mockEvents);
+  const [events] = useState<EventItem[]>(
+    dbEvents.map(e => ({
+      id: e.id,
+      title: e.title,
+      date: new Date(e.date),
+      location: e.location,
+      description: e.description,
+      category: e.category,
+      registered: e.registered
+    }))
+  );
   const [groupsExpanded, setGroupsExpanded] = useState<Record<string, boolean>>({
     "Environment": true,
     "Community Service": true,
@@ -287,13 +112,14 @@ const Volunteers: React.FC = () => {
     if (storedFamilyMembers) {
       setFamilyMembers(JSON.parse(storedFamilyMembers));
     } else {
-      // Mock family members if none found
-      const mockFamilyMembers: FamilyMember[] = [
-        { id: '1', name: "Emma Smith", relationship: "Daughter", age: 14 },
-        { id: '2', name: "James Smith", relationship: "Son", age: 10 },
-        { id: '3', name: "Sarah Johnson", relationship: "Spouse", age: 42 }
-      ];
-      setFamilyMembers(mockFamilyMembers);
+      setFamilyMembers(
+        dbFamilyMembers.map(m => ({
+          id: m.id,
+          name: `${m.firstName} ${m.lastName}`,
+          relationship: m.relationship,
+          age: m.age
+        }))
+      );
     }
     
     // Load registered tasks from localStorage
