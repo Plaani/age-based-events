@@ -8,74 +8,35 @@ import { CalendarIcon, Clock, Users, CheckCircle2, XCircle, ClipboardCheck, Awar
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import EventCalendar from "@/components/dashboard/EventCalendar";
+import { events, familyMembers as dbFamilyMembers, volunteerTasks } from "@/data/mockDatabase";
 
-// Mock data
-const upcomingEvents = [
-  {
-    id: 1,
-    title: "Summer Sports Camp",
-    date: "2025-06-15",
-    time: "10:00 AM",
-    ageRange: "8-12",
-    registered: true,
-    deadline: "2025-05-30"
-  },
-  {
-    id: 2,
-    title: "Coding Workshop for Teens",
-    date: "2025-05-22",
-    time: "4:00 PM",
-    ageRange: "13-17",
-    registered: false,
-    deadline: "2025-05-15"
-  },
-  {
-    id: 3,
-    title: "Family Fun Day",
-    date: "2025-06-01",
-    time: "11:00 AM",
-    ageRange: "All ages",
-    registered: false,
-    deadline: "2025-05-25"
-  }
-];
+// Derive dashboard data from central mock database
+const upcomingEvents = events.map(e => ({
+  id: e.id,
+  title: e.title,
+  date: e.date,
+  time: e.time,
+  ageRange: e.ageRange,
+  registered: e.registered,
+  deadline: e.deadline
+}));
 
-const familyMembers = [
-  { id: 1, name: "Emma Smith", age: 14, relationship: "Daughter" },
-  { id: 2, name: "James Smith", age: 10, relationship: "Son" },
-  { id: 3, name: "Sarah Johnson", age: 42, relationship: "Spouse" }
-];
+const familyMembers = dbFamilyMembers.map(m => ({
+  id: m.id,
+  name: `${m.firstName} ${m.lastName}`,
+  age: m.age,
+  relationship: m.relationship
+}));
 
-// Mock volunteer opportunities
-const volunteerOpportunities = [
-  {
-    id: 1,
-    title: "Community Garden Clean-up",
-    date: "2025-05-20",
-    time: "9:00 AM",
-    location: "Central Park Community Garden",
-    stars: 5,
-    registered: false
-  },
-  {
-    id: 2,
-    title: "Food Bank Distribution",
-    date: "2025-06-05",
-    time: "1:00 PM",
-    location: "City Food Bank",
-    stars: 6,
-    registered: true
-  },
-  {
-    id: 3,
-    title: "After-School Program Assistance",
-    date: "2025-05-28",
-    time: "3:30 PM",
-    location: "Downtown Community Center",
-    stars: 4,
-    registered: false
-  }
-];
+const volunteerOpportunities = volunteerTasks.map(task => ({
+  id: task.id,
+  title: task.title,
+  date: task.date.toISOString().split('T')[0],
+  time: '',
+  location: task.location,
+  stars: task.starsReward,
+  registered: false
+}));
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
