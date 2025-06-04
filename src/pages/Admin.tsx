@@ -25,17 +25,82 @@ import {
   Download
 } from "lucide-react";
 import { format } from "date-fns";
-import { events as mockEvents, users as mockUsers, familyMembers as mockFamilyMembers } from "@/data/mockDatabase";
+import { events as mockEvents, familyMembers as mockFamilyMembers } from "@/data/mockDatabase";
+
+// Define User interface for admin panel
+interface AdminUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  nationalId: string;
+  email: string;
+  phone: string;
+  status: 'pending' | 'approved' | 'rejected';
+  registeredAt: string;
+}
+
+// Mock users data for admin panel
+const mockUsers: AdminUser[] = [
+  {
+    id: "1",
+    firstName: "Mari",
+    lastName: "Tamm",
+    nationalId: "39801010001",
+    email: "mari.tamm@email.ee",
+    phone: "+372 5123 4567",
+    status: "approved",
+    registeredAt: "2024-01-15"
+  },
+  {
+    id: "2", 
+    firstName: "Jaan",
+    lastName: "Kask",
+    nationalId: "48512150002",
+    email: "jaan.kask@email.ee",
+    phone: "+372 5234 5678",
+    status: "pending",
+    registeredAt: "2024-03-20"
+  },
+  {
+    id: "3",
+    firstName: "Liisa",
+    lastName: "Mets",
+    nationalId: "37205120003",
+    email: "liisa.mets@email.ee", 
+    phone: "+372 5345 6789",
+    status: "approved",
+    registeredAt: "2024-02-10"
+  }
+];
+
+// Extended Event interface for admin functionality
+interface AdminEvent {
+  id: string;
+  title: string;
+  date: string;
+  location: string;
+  description: string;
+  targetAge?: string;
+  participants?: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+  }>;
+}
 
 const Admin: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("users");
-  const [users, setUsers] = useState(mockUsers);
-  const [events, setEvents] = useState(mockEvents);
+  const [users, setUsers] = useState<AdminUser[]>(mockUsers);
+  const [events, setEvents] = useState<AdminEvent[]>(mockEvents.map(event => ({
+    ...event,
+    targetAge: "Perekonnad",
+    participants: []
+  })));
   const [familyMembers, setFamilyMembers] = useState(mockFamilyMembers);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [targetAgeFilter, setTargetAgeFilter] = useState<string>("all");
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<AdminEvent | null>(null);
   const [selectedMember, setSelectedMember] = useState<string>("");
   const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [participantsDialogOpen, setParticipantsDialogOpen] = useState(false);
@@ -56,7 +121,7 @@ const Admin: React.FC = () => {
 
   const approveUser = (userId: string) => {
     setUsers(users.map(user => 
-      user.id === userId ? { ...user, status: 'approved' } : user
+      user.id === userId ? { ...user, status: 'approved' as const } : user
     ));
     
     toast({
@@ -67,7 +132,7 @@ const Admin: React.FC = () => {
 
   const rejectUser = (userId: string) => {
     setUsers(users.map(user => 
-      user.id === userId ? { ...user, status: 'rejected' } : user
+      user.id === userId ? { ...user, status: 'rejected' as const } : user
     ));
     
     toast({
@@ -105,10 +170,6 @@ const Admin: React.FC = () => {
     return true;
   });
 
-  const clearSelectedDate = () => {
-    setSelectedDate(undefined);
-  };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
@@ -122,10 +183,8 @@ const Admin: React.FC = () => {
     }
   };
 
-  const openParticipantsDialog = (event: any) => {
+  const openParticipantsDialog = (event: AdminEvent) => {
     setSelectedEvent(event);
-    
-    // Get all family members who could potentially participate
     setAvailableMembers(familyMembers);
     setParticipantsDialogOpen(true);
   };
@@ -134,7 +193,6 @@ const Admin: React.FC = () => {
     if (selectedMember && selectedEvent) {
       const member = familyMembers.find(m => m.id === selectedMember);
       if (member) {
-        // Add participant to the event
         const updatedEvents = events.map(event => 
           event.id === selectedEvent.id 
             ? { 
@@ -144,11 +202,12 @@ const Admin: React.FC = () => {
             : event
         );
         setEvents(updatedEvents);
-        setSelectedEvent(null);
+        setSelectedEvent({
+          ...selectedEvent,
+          participants: [...(selectedEvent.participants || []), member]
+        });
         
-        // Remove added member from available list
         setAvailableMembers(availableMembers.filter(m => m.id !== selectedMember));
-        
         setSelectedMember("");
         
         toast({
@@ -171,21 +230,21 @@ const Admin: React.FC = () => {
       );
       setEvents(updatedEvents);
       
-      // Add removed member back to available list
       const removedMember = selectedEvent.participants?.find(p => p.id === participantId);
       if (removedMember) {
         setAvailableMembers([...availableMembers, removedMember]);
       }
+      
+      setSelectedEvent({
+        ...selectedEvent,
+        participants: selectedEvent.participants?.filter(p => p.id !== participantId) || []
+      });
       
       toast({
         title: "Osaleja eemaldatud",
         description: "Osaleja on ürituselt eemaldatud.",
       });
     }
-  };
-
-  const clearDate = () => {
-    setSelectedDate(undefined);
   };
 
   const exportData = () => {
@@ -332,7 +391,7 @@ const Admin: React.FC = () => {
                           variant="outline" 
                           size="sm" 
                           className="mt-2 w-full"
-                          onClick={clearDate}
+                          onClick={() => setSelectedDate(undefined)}
                         >
                           Tühista kuupäev
                         </Button>
@@ -373,7 +432,7 @@ const Admin: React.FC = () => {
                                 <span className="font-medium">Koht:</span> {event.location}
                               </div>
                               <div>
-                                <span className="font-medium">Sihtgrupp:</span> {event.targetAge}
+                                <span className="font-medium">Sihtgrupp:</span> {event.targetAge || "Perekonnad"}
                               </div>
                               <div>
                                 <span className="font-medium">Osalejaid:</span> {event.participants?.length || 0}
