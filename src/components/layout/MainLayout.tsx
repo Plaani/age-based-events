@@ -14,18 +14,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   
   const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Events", href: "/events", icon: Calendar },
-    { name: "Admin Panel", href: "/admin", icon: Settings, adminOnly: true },
+    { name: "Töölaud", href: "/dashboard", icon: Home },
+    { name: "Üritused", href: "/events", icon: Calendar },
+    { name: "Perekond", href: "/family", icon: Users },
+    { name: "Admin", href: "/admin", icon: Settings, adminOnly: true },
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar for larger screens */}
       <div className="hidden md:flex md:w-64 md:flex-col">
-        <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r">
+        <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r border-green-100">
           <div className="flex items-center flex-shrink-0 px-4">
-            <h1 className="text-xl font-bold text-brand-700">EventAge</h1>
+            <h1 className="text-xl font-bold text-green-700">MTÜ Tartu Pereliit</h1>
           </div>
           <div className="mt-8 flex-grow flex flex-col">
             <nav className="flex-1 px-4 space-y-1">
@@ -37,13 +38,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     to={item.href}
                     className={`${
                       isActive
-                        ? "bg-brand-100 text-brand-700"
-                        : "text-gray-700 hover:bg-gray-100"
-                    } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
+                        ? "bg-green-100 text-green-700 border-r-2 border-green-600"
+                        : "text-gray-700 hover:bg-green-50"
+                    } group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors`}
                   >
                     <item.icon
                       className={`${
-                        isActive ? "text-brand-700" : "text-gray-400 group-hover:text-gray-500"
+                        isActive ? "text-green-700" : "text-gray-400 group-hover:text-green-600"
                       } mr-3 flex-shrink-0 h-5 w-5`}
                     />
                     {item.name}
@@ -55,26 +56,26 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <div className="p-4">
             <Button 
               variant="outline" 
-              className="w-full justify-start" 
+              className="w-full justify-start border-green-200 text-green-700 hover:bg-green-50" 
               onClick={logout}
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
+              Logi välja
             </Button>
           </div>
         </div>
       </div>
 
       {/* Mobile header */}
-      <div className="md:hidden bg-white shadow-sm w-full fixed top-0 z-10">
+      <div className="md:hidden bg-white shadow-sm w-full fixed top-0 z-10 border-b border-green-100">
         <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-brand-700">EventAge</h1>
+          <h1 className="text-lg font-bold text-green-700">MTÜ Tartu Pereliit</h1>
           <div className="flex items-center space-x-4">
             {/* Mobile menu button */}
-            <Button variant="outline" size="icon" className="h-8 w-8">
-              <span className="sr-only">Open menu</span>
+            <Button variant="outline" size="icon" className="h-8 w-8 border-green-200">
+              <span className="sr-only">Ava menüü</span>
               <svg
-                className="h-5 w-5"
+                className="h-5 w-5 text-green-700"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"

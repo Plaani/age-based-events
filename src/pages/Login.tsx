@@ -12,10 +12,10 @@ import { useAuth } from "@/hooks/useAuth";
 
 const formSchema = z.object({
   nationalId: z.string().min(10, {
-    message: "National ID must be at least 10 characters.",
+    message: "Isikukood peab olema vähemalt 10 märki pikk.",
   }),
   password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
+    message: "Parool peab olema vähemalt 6 märki pikk.",
   }),
 });
 
@@ -41,19 +41,19 @@ const Login: React.FC = () => {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("An unknown error occurred");
+        setError("Teadmata viga");
       }
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-yellow-50 p-4">
       <div className="w-full max-w-md">
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-center">Sign In</CardTitle>
-            <CardDescription className="text-center">
-              Enter your credentials to access your account
+        <Card className="shadow-lg border-green-100">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-green-800">MTÜ Tartu Pereliit</CardTitle>
+            <CardDescription className="text-gray-600">
+              Sisestage oma andmed kontole ligipääsemiseks
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -70,9 +70,13 @@ const Login: React.FC = () => {
                   name="nationalId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>National ID</FormLabel>
+                      <FormLabel className="text-green-800">Isikukood</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your National ID number" {...field} />
+                        <Input 
+                          placeholder="Sisestage oma isikukood" 
+                          {...field} 
+                          className="border-green-200 focus:border-green-400"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -84,26 +88,35 @@ const Login: React.FC = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="text-green-800">Parool</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
+                        <Input 
+                          type="password" 
+                          placeholder="••••••••" 
+                          {...field} 
+                          className="border-green-200 focus:border-green-400"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Signing in..." : "Sign In"}
+                <Button 
+                  type="submit" 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Sisselogimine..." : "Logi sisse"}
                 </Button>
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
-            <div className="text-center text-sm">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-brand-600 hover:underline">
-                Register
+          <CardFooter className="flex flex-col space-y-2 border-t border-green-100">
+            <div className="text-center text-sm text-gray-600">
+              Pole veel kontot?{" "}
+              <Link to="/register" className="text-green-700 hover:underline font-medium">
+                Registreeru
               </Link>
             </div>
           </CardFooter>
