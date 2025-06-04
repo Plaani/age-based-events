@@ -15,40 +15,7 @@ import * as z from "zod";
 import { Users, UserPlus, CalendarClock, Share2, Eye, Settings, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/components/ui/use-toast";
-
-// Mock family data
-const mockFamilyMembers = [
-  { 
-    id: "1", 
-    nationalId: "7801154321", 
-    firstName: "Emma", 
-    lastName: "Smith", 
-    age: 14, 
-    relationship: "Tütar",
-    shareRegistrations: true,
-    sharePurchases: false
-  },
-  { 
-    id: "2", 
-    nationalId: "1201234567", 
-    firstName: "James", 
-    lastName: "Smith", 
-    age: 10, 
-    relationship: "Poeg",
-    shareRegistrations: true,
-    sharePurchases: true
-  },
-  { 
-    id: "3", 
-    nationalId: "7605124567", 
-    firstName: "Sarah", 
-    lastName: "Johnson", 
-    age: 42, 
-    relationship: "Abikaasa",
-    shareRegistrations: true,
-    sharePurchases: true
-  }
-];
+import { familyMembers as mockFamilyMembers } from "@/data/mockDatabase";
 
 const formSchema = z.object({
   nationalId: z.string().min(10, {

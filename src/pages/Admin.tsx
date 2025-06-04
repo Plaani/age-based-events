@@ -39,123 +39,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import {
+  pendingUsers,
+  invalidMemberships,
+  adminEvents,
+  members as mockMembers
+} from "@/data/mockDatabase";
 
-// Mock data
-const pendingUsers = [
-  {
-    id: "1",
-    nationalId: "9001234567",
-    firstName: "Alex",
-    lastName: "Thompson",
-    email: "alex@example.com",
-    registeredDate: "2025-04-25",
-    includeFamily: true,
-  },
-  {
-    id: "2",
-    nationalId: "8807121234",
-    firstName: "Maria",
-    lastName: "Garcia",
-    email: "maria@example.com",
-    registeredDate: "2025-05-01",
-    includeFamily: false,
-  },
-  {
-    id: "3",
-    nationalId: "7512093456",
-    firstName: "John",
-    lastName: "Roberts",
-    email: "john@example.com",
-    registeredDate: "2025-05-03",
-    includeFamily: true,
-  }
-];
 
-const invalidMemberships = [
-  {
-    id: "1",
-    nationalId: "6705142345",
-    name: "Robert Wilson",
-    expiryDate: "2025-04-01",
-    accessStatus: "Active",
-  },
-  {
-    id: "2",
-    nationalId: "7809124567",
-    name: "Linda Johnson",
-    expiryDate: "2025-03-15",
-    accessStatus: "Active",
-  },
-  {
-    id: "3",
-    nationalId: "9102056789",
-    name: "Michael Brown",
-    expiryDate: "2025-04-20",
-    accessStatus: "Active",
-  }
-];
-
-// Mock events data
-const mockEvents = [
-  {
-    id: "1",
-    title: "Summer Picnic",
-    date: new Date(2025, 5, 15),
-    location: "Central Park",
-    registrationDeadline: new Date(2025, 5, 10),
-    unregistrationDeadline: new Date(2025, 5, 12),
-    maxParticipants: 50,
-    description: "Annual summer picnic for all members and their families",
-    createdBy: "Admin",
-    targetAge: "All Ages",
-    participants: [
-      { id: "1", name: "Robert Wilson", nationalId: "6705142345" },
-      { id: "2", name: "Linda Johnson", nationalId: "7809124567" },
-    ]
-  },
-  {
-    id: "2",
-    title: "Board Meeting",
-    date: new Date(2025, 5, 20),
-    location: "Conference Room A",
-    registrationDeadline: new Date(2025, 5, 18),
-    unregistrationDeadline: new Date(2025, 5, 19),
-    maxParticipants: 15,
-    description: "Quarterly board meeting to discuss finances and upcoming events",
-    createdBy: "Michael Brown",
-    targetAge: "Adults",
-    participants: [
-      { id: "3", name: "Michael Brown", nationalId: "9102056789" },
-      { id: "1", name: "Robert Wilson", nationalId: "6705142345" },
-    ]
-  },
-  {
-    id: "3",
-    title: "Children's Workshop",
-    date: new Date(2025, 6, 5),
-    location: "Activity Room B",
-    registrationDeadline: new Date(2025, 6, 1),
-    unregistrationDeadline: new Date(2025, 6, 3),
-    maxParticipants: 20,
-    description: "Fun activities and crafts for children aged 5-12",
-    createdBy: "Linda Johnson",
-    targetAge: "Children 5-12",
-    participants: [
-      { id: "4", name: "Sarah Davis", nationalId: "8501234567" },
-      { id: "5", name: "Thomas Miller", nationalId: "9003123456" },
-    ]
-  }
-];
-
-// Mock members data
-const mockMembers = [
-  { id: "1", name: "Robert Wilson", nationalId: "6705142345" },
-  { id: "2", name: "Linda Johnson", nationalId: "7809124567" },
-  { id: "3", name: "Michael Brown", nationalId: "9102056789" },
-  { id: "4", name: "Sarah Davis", nationalId: "8501234567" },
-  { id: "5", name: "Thomas Miller", nationalId: "9003123456" },
-  { id: "6", name: "Emma Clark", nationalId: "8712090123" }
-];
 
 // Event creation form schema
 const eventFormSchema = z.object({
@@ -196,15 +87,7 @@ const Admin: React.FC = () => {
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | "revoke">("approve");
   const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
   const [events, setEvents] = useState<EventFormValues[]>([]);
-  const [allEvents, setAllEvents] = useState<EventType[]>(mockEvents);
-  const [participantsDialogOpen, setParticipantsDialogOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
-  const [availableMembers, setAvailableMembers] = useState<any[]>([]);
-  const [selectedMember, setSelectedMember] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [targetAgeFilter, setTargetAgeFilter] = useState<string>("all");
-  
-  // Event form
+  const [allEvents, setAllEvents] = useState<EventType[]>(adminEvents);
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
     defaultValues: {
