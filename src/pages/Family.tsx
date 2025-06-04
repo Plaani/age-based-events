@@ -15,7 +15,41 @@ import * as z from "zod";
 import { Users, UserPlus, CalendarClock, Share2, Eye, Settings, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/components/ui/use-toast";
-import { familyMembers as mockFamilyMembers } from "@/data/mockDatabase";
+
+// Define the FamilyMember interface to match mockDatabase
+interface FamilyMember {
+  id: string;
+  nationalId: string;
+  firstName: string;
+  lastName: string;
+  age: number;
+  relationship: string;
+  shareRegistrations: boolean;
+  sharePurchases: boolean;
+}
+
+const mockFamilyMembers: FamilyMember[] = [
+  {
+    id: "1",
+    nationalId: "39801010001",
+    firstName: "Mari",
+    lastName: "Tamm",
+    age: 35,
+    relationship: "Abikaasa",
+    shareRegistrations: true,
+    sharePurchases: false
+  },
+  {
+    id: "2",
+    nationalId: "51204150002",
+    firstName: "Jaan",
+    lastName: "Tamm",
+    age: 8,
+    relationship: "Poeg",
+    shareRegistrations: true,
+    sharePurchases: true
+  }
+];
 
 const formSchema = z.object({
   nationalId: z.string().min(10, {
@@ -36,7 +70,7 @@ const formSchema = z.object({
 
 const Family: React.FC = () => {
   const { user } = useAuth();
-  const [familyMembers, setFamilyMembers] = useState(mockFamilyMembers);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(mockFamilyMembers);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -68,7 +102,7 @@ const Family: React.FC = () => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const newMember = {
+    const newMember: FamilyMember = {
       id: String(Math.floor(Math.random() * 1000)),
       nationalId: values.nationalId,
       firstName: values.firstName,

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import VolunteerTask, { Volunteer, VolunteerTask as VolunteerTaskType } from "@/components/volunteers/VolunteerTask";
 import { Award, CalendarDays, ClipboardCheck, Filter, MapPin, Plus, Star, Clock, ChevronDown, Calendar as CalendarIcon, Users, UserPlus, Check, X, Ban } from "lucide-react";
@@ -43,6 +44,16 @@ interface FamilyMember {
   name: string;
   relationship: string;
   age: number;
+}
+
+interface EventItem {
+  id: string;
+  title: string;
+  date: Date;
+  location: string;
+  description: string;
+  category: string;
+  registered?: boolean;
 }
 
 // Create a union type for combined items

@@ -1,1132 +1,554 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ShieldCheck, AlertCircle, CalendarPlus, UserCheck, UserX, Calendar, Users } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { format } from "date-fns";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import UserManagement from "@/components/admin/UserManagement";
-import ReportingView from "@/components/admin/ReportingView";
-import VolunteerManagement from "@/components/admin/VolunteerManagement";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import EventCalendar from "@/components/dashboard/EventCalendar";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/components/ui/use-toast";
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Label } from "@/components/ui/label";
-import {
-  pendingUsers,
-  invalidMemberships,
-  adminEvents,
-  members as mockMembers
-} from "@/data/mockDatabase";
-
-
-
-// Event creation form schema
-const eventFormSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
-  date: z.date(),
-  registrationDeadline: z.date(),
-  unregistrationDeadline: z.date(),
-  maxParticipants: z.coerce.number().min(1, "At least 1 participant is required"),
-  location: z.string().min(3, "Location must be at least 3 characters"),
-  targetAge: z.string().min(1, "Target age is required"),
-});
-
-type EventFormValues = z.infer<typeof eventFormSchema>;
-
-// Define the event type based on our mock data structure
-type EventType = {
-  id: string;
-  title: string;
-  date: Date;
-  location: string;
-  registrationDeadline: Date;
-  unregistrationDeadline: Date;
-  maxParticipants: number;
-  description: string;
-  createdBy: string;
-  targetAge: string;
-  participants: { id: string; name: string; nationalId: string }[];
-};
+  Users, 
+  Calendar as CalendarIcon, 
+  Settings, 
+  FileText, 
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  UserPlus,
+  Download
+} from "lucide-react";
+import { format } from "date-fns";
+import { events as mockEvents, users as mockUsers, familyMembers as mockFamilyMembers } from "@/data/mockDatabase";
 
 const Admin: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [selectedMemberships, setSelectedMemberships] = useState<string[]>([]);
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | "revoke">("approve");
-  const [createEventDialogOpen, setCreateEventDialogOpen] = useState(false);
-  const [events, setEvents] = useState<EventFormValues[]>([]);
-  const [allEvents, setAllEvents] = useState<EventType[]>(adminEvents);
-  const form = useForm<EventFormValues>({
-    resolver: zodResolver(eventFormSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      location: "",
-      maxParticipants: 20,
-      targetAge: "All Ages",
-    }
-  });
-  
-  // Redirect non-admin users
-  React.useEffect(() => {
-    if (user && !user.isAdmin) {
-      navigate("/dashboard");
-      toast({
-        variant: "destructive",
-        title: "Access Denied",
-        description: "You do not have permission to access the admin panel.",
-      });
-    }
-  }, [user, navigate]);
-  
-  if (!user || !user.isAdmin) return null;
+  const [activeTab, setActiveTab] = useState("users");
+  const [users, setUsers] = useState(mockUsers);
+  const [events, setEvents] = useState(mockEvents);
+  const [familyMembers, setFamilyMembers] = useState(mockFamilyMembers);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [targetAgeFilter, setTargetAgeFilter] = useState<string>("all");
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedMember, setSelectedMember] = useState<string>("");
+  const [availableMembers, setAvailableMembers] = useState<any[]>([]);
+  const [participantsDialogOpen, setParticipantsDialogOpen] = useState(false);
 
-  const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
-  };
-
-  const filteredPendingUsers = pendingUsers.filter(user => 
-    user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.nationalId.includes(searchTerm) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
-  const filteredInvalidMemberships = invalidMemberships.filter(member => 
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.nationalId.includes(searchTerm)
-  );
-
-  const filteredEvents = allEvents.filter(event => {
-    const matchesSearch = 
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.createdBy.toLowerCase().includes(searchTerm.toLowerCase());
-      
-    const matchesTargetAge = 
-      targetAgeFilter === "all" || 
-      (targetAgeFilter === "adults" && 
-        (event.targetAge.includes("Adult") || event.targetAge === "All Ages")) ||
-      (targetAgeFilter === "children" && 
-        (event.targetAge.includes("Children") || event.targetAge.includes("Kids") || 
-         event.targetAge === "All Ages"));
-      
-    const matchesDate = !selectedDate || 
-      (event.date.getDate() === selectedDate.getDate() && 
-       event.date.getMonth() === selectedDate.getMonth() && 
-       event.date.getFullYear() === selectedDate.getFullYear());
-      
-    return matchesSearch && matchesTargetAge && matchesDate;
-  });
-
-  const handleSelectUser = (userId: string) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
+  // Check if user is admin
+  if (!user?.isAdmin) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900">Juurdepääs keelatud</h2>
+            <p className="mt-2 text-gray-600">Sul pole õigusi admin paneeli kasutamiseks.</p>
+          </div>
+        </div>
+      </MainLayout>
     );
-  };
-  
-  const handleSelectAllUsers = (checked: boolean) => {
-    if (checked) {
-      setSelectedUsers(filteredPendingUsers.map(user => user.id));
-    } else {
-      setSelectedUsers([]);
-    }
-  };
-  
-  const handleSelectMembership = (membershipId: string) => {
-    setSelectedMemberships(prev => 
-      prev.includes(membershipId) 
-        ? prev.filter(id => id !== membershipId)
-        : [...prev, membershipId]
-    );
-  };
-  
-  const handleSelectAllMemberships = (checked: boolean) => {
-    if (checked) {
-      setSelectedMemberships(filteredInvalidMemberships.map(member => member.id));
-    } else {
-      setSelectedMemberships([]);
-    }
-  };
-  
-  const openConfirmDialog = (action: "approve" | "reject" | "revoke") => {
-    setConfirmAction(action);
-    setConfirmDialogOpen(true);
-  };
-  
-  const handleConfirmAction = () => {
-    // In a real app, this would call an API
-    if (confirmAction === "approve") {
-      toast({
-        title: "Users Approved",
-        description: `${selectedUsers.length} user(s) have been approved.`,
-      });
-      // Would update users in the backend
-    } else if (confirmAction === "reject") {
-      toast({
-        title: "Users Rejected",
-        description: `${selectedUsers.length} user(s) have been rejected.`,
-      });
-      // Would delete or mark users as rejected in the backend
-    } else if (confirmAction === "revoke") {
-      toast({
-        title: "Access Revoked",
-        description: `Access has been revoked for ${selectedMemberships.length} user(s) with invalid memberships.`,
-      });
-      // Would update membership status in the backend
-    }
-    
-    setConfirmDialogOpen(false);
-    setSelectedUsers([]);
-    setSelectedMemberships([]);
-  };
-  
-  // Event creation handler
-  const onSubmitEvent = (data: EventFormValues) => {
-    // Create a new event with required fields explicitly defined
-    const newEvent: EventType = {
-      id: `${allEvents.length + 1}`,
-      title: data.title,
-      date: data.date,
-      location: data.location,
-      registrationDeadline: data.registrationDeadline,
-      unregistrationDeadline: data.unregistrationDeadline,
-      maxParticipants: data.maxParticipants,
-      description: data.description,
-      targetAge: data.targetAge,
-      createdBy: user?.firstName + " " + user?.lastName || "Admin",
-      participants: []
-    };
-    
-    // Add to both event lists
-    setEvents((prev) => [...prev, data]);
-    setAllEvents((prev) => [...prev, newEvent]);
+  }
+
+  const approveUser = (userId: string) => {
+    setUsers(users.map(user => 
+      user.id === userId ? { ...user, status: 'approved' } : user
+    ));
     
     toast({
-      title: "Event Created",
-      description: `${data.title} has been created successfully.`,
-    });
-    setCreateEventDialogOpen(false);
-    form.reset();
-  };
-
-  const openParticipantsDialog = (event: any) => {
-    setSelectedEvent(event);
-    
-    // Filter out members already registered for this event
-    const eventParticipantIds = event.participants.map((p: any) => p.id);
-    const filteredMembers = mockMembers.filter(member => !eventParticipantIds.includes(member.id));
-    
-    setAvailableMembers(filteredMembers);
-    setParticipantsDialogOpen(true);
-  };
-
-  const addParticipant = () => {
-    if (!selectedMember) return;
-    
-    const memberToAdd = mockMembers.find(m => m.id === selectedMember);
-    if (!memberToAdd) return;
-    
-    // Add participant to event
-    const updatedEvents = allEvents.map(event => {
-      if (event.id === selectedEvent.id) {
-        return {
-          ...event,
-          participants: [...event.participants, memberToAdd]
-        };
-      }
-      return event;
-    });
-    
-    setAllEvents(updatedEvents);
-    
-    // Update selected event and available members
-    const updatedEvent = updatedEvents.find(e => e.id === selectedEvent.id)!;
-    setSelectedEvent(updatedEvent);
-    
-    const updatedAvailableMembers = availableMembers.filter(m => m.id !== selectedMember);
-    setAvailableMembers(updatedAvailableMembers);
-    
-    setSelectedMember("");
-    
-    toast({
-      title: "Participant Added",
-      description: `${memberToAdd.name} has been added to the event.`,
+      title: "Kasutaja kinnitatud",
+      description: "Kasutaja on edukalt kinnitatud ja saab nüüd süsteemi kasutada.",
     });
   };
 
-  const removeParticipant = (participantId: string) => {
-    const participantToRemove = selectedEvent.participants.find((p: any) => p.id === participantId);
-    
-    // Remove participant from event
-    const updatedEvents = allEvents.map(event => {
-      if (event.id === selectedEvent.id) {
-        return {
-          ...event,
-          participants: event.participants.filter((p: any) => p.id !== participantId)
-        };
-      }
-      return event;
-    });
-    
-    setAllEvents(updatedEvents);
-    
-    // Update selected event
-    const updatedEvent = updatedEvents.find(e => e.id === selectedEvent.id)!;
-    setSelectedEvent(updatedEvent);
-    
-    // Add back to available members
-    const memberToAdd = mockMembers.find(m => m.id === participantId);
-    if (memberToAdd) {
-      setAvailableMembers([...availableMembers, memberToAdd]);
-    }
+  const rejectUser = (userId: string) => {
+    setUsers(users.map(user => 
+      user.id === userId ? { ...user, status: 'rejected' } : user
+    ));
     
     toast({
-      title: "Participant Removed",
-      description: `${participantToRemove.name} has been removed from the event.`,
+      title: "Kasutaja tagasi lükatud",
+      description: "Kasutaja registreering on tagasi lükatud.",
     });
   };
+
+  const deleteUser = (userId: string) => {
+    setUsers(users.filter(user => user.id !== userId));
+    
+    toast({
+      title: "Kasutaja kustutatud",
+      description: "Kasutaja on süsteemist kustutatud.",
+    });
+  };
+
+  // Filter events based on selected criteria
+  const filteredEvents = events.filter(event => {
+    // Age filter
+    if (targetAgeFilter !== "all") {
+      if (targetAgeFilter === "adults" && event.targetAge !== "Täiskasvanud") return false;
+      if (targetAgeFilter === "children" && event.targetAge !== "Lapsed") return false;
+      if (targetAgeFilter === "families" && event.targetAge !== "Perekonnad") return false;
+    }
+    
+    // Date filter
+    if (selectedDate) {
+      const eventDate = new Date(event.date);
+      return eventDate.getDate() === selectedDate.getDate() && 
+             eventDate.getMonth() === selectedDate.getMonth() && 
+             eventDate.getFullYear() === selectedDate.getFullYear();
+    }
+    
+    return true;
+  });
 
   const clearSelectedDate = () => {
     setSelectedDate(undefined);
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-800">Kinnitatud</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800">Ootel</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-800">Tagasi lükatud</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const openParticipantsDialog = (event: any) => {
+    setSelectedEvent(event);
+    
+    // Get all family members who could potentially participate
+    setAvailableMembers(familyMembers);
+    setParticipantsDialogOpen(true);
+  };
+
+  const addParticipant = () => {
+    if (selectedMember && selectedEvent) {
+      const member = familyMembers.find(m => m.id === selectedMember);
+      if (member) {
+        // Add participant to the event
+        const updatedEvents = events.map(event => 
+          event.id === selectedEvent.id 
+            ? { 
+                ...event, 
+                participants: [...(event.participants || []), member] 
+              }
+            : event
+        );
+        setEvents(updatedEvents);
+        setSelectedEvent(null);
+        
+        // Remove added member from available list
+        setAvailableMembers(availableMembers.filter(m => m.id !== selectedMember));
+        
+        setSelectedMember("");
+        
+        toast({
+          title: "Osaleja lisatud",
+          description: `${member.firstName} ${member.lastName} on lisatud üritusele.`,
+        });
+      }
+    }
+  };
+
+  const removeParticipant = (participantId: string) => {
+    if (selectedEvent) {
+      const updatedEvents = events.map(event => 
+        event.id === selectedEvent.id 
+          ? { 
+              ...event, 
+              participants: event.participants?.filter(p => p.id !== participantId) || []
+            }
+          : event
+      );
+      setEvents(updatedEvents);
+      
+      // Add removed member back to available list
+      const removedMember = selectedEvent.participants?.find(p => p.id === participantId);
+      if (removedMember) {
+        setAvailableMembers([...availableMembers, removedMember]);
+      }
+      
+      toast({
+        title: "Osaleja eemaldatud",
+        description: "Osaleja on ürituselt eemaldatud.",
+      });
+    }
+  };
+
+  const clearDate = () => {
+    setSelectedDate(undefined);
+  };
+
+  const exportData = () => {
+    toast({
+      title: "Andmed eksporditud",
+      description: "Andmed on edukalt eksporditud.",
+    });
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Admin Paneel</h1>
+            <p className="text-gray-500 mt-2">
+              Haldage kasutajaid, üritusi ja süsteemi seadeid
+            </p>
           </div>
-          <p className="text-gray-500">
-            Manage user eligibility, memberships, and access
-          </p>
+          <Button onClick={exportData}>
+            <Download className="mr-2 h-4 w-4" />
+            Ekspordi Andmed
+          </Button>
         </div>
 
-        <Tabs defaultValue="all-users" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="all-users">All Users</TabsTrigger>
-            <TabsTrigger value="pending-users">Pending Approvals</TabsTrigger>
-            <TabsTrigger value="memberships">Invalid Memberships</TabsTrigger>
-            <TabsTrigger value="events">Event Management</TabsTrigger>
-            <TabsTrigger value="volunteers">Volunteer Management</TabsTrigger>
-            <TabsTrigger value="reporting">Reporting</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="users">Kasutajad</TabsTrigger>
+            <TabsTrigger value="events">Üritused</TabsTrigger>
+            <TabsTrigger value="reports">Aruanded</TabsTrigger>
+            <TabsTrigger value="settings">Seaded</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="all-users">
-            <UserManagement />
-          </TabsContent>
-          
-          <TabsContent value="pending-users">
+
+          <TabsContent value="users" className="space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <CardTitle>Pending User Approvals</CardTitle>
-                    <CardDescription>
-                      Review and approve user registrations
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      disabled={selectedUsers.length === 0}
-                      onClick={() => openConfirmDialog("reject")}
-                    >
-                      <UserX className="mr-2 h-4 w-4" />
-                      Reject Selected
-                    </Button>
-                    <Button 
-                      size="sm"
-                      disabled={selectedUsers.length === 0}
-                      onClick={() => openConfirmDialog("approve")}
-                    >
-                      <UserCheck className="mr-2 h-4 w-4" />
-                      Approve Selected
-                    </Button>
-                  </div>
-                </div>
+                <CardTitle className="flex items-center">
+                  <Users className="mr-2 h-5 w-5" />
+                  Kasutajate Haldamine
+                </CardTitle>
+                <CardDescription>
+                  Vaadake ja hallake kõiki süsteemi kasutajaid
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="mb-4">
-                  <Input
-                    placeholder="Search by name, email, or national ID..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-12">
-                          <Checkbox 
-                            checked={selectedUsers.length > 0 && selectedUsers.length === filteredPendingUsers.length}
-                            onCheckedChange={handleSelectAllUsers}
-                          />
-                        </TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>National ID</TableHead>
+                        <TableHead>Nimi</TableHead>
+                        <TableHead>Isikukood</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Registered</TableHead>
-                        <TableHead>Family</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead>Telefon</TableHead>
+                        <TableHead>Staatus</TableHead>
+                        <TableHead>Registreeritud</TableHead>
+                        <TableHead>Tegevused</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredPendingUsers.length > 0 ? (
-                        filteredPendingUsers.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell>
-                              <Checkbox 
-                                checked={selectedUsers.includes(user.id)}
-                                onCheckedChange={() => handleSelectUser(user.id)}
-                              />
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {user.firstName} {user.lastName}
-                            </TableCell>
-                            <TableCell>{user.nationalId}</TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>{user.registeredDate}</TableCell>
-                            <TableCell>
-                              {user.includeFamily ? (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  Yes
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                                  No
-                                </Badge>
+                      {users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">
+                            {user.firstName} {user.lastName}
+                          </TableCell>
+                          <TableCell>{user.nationalId}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.phone}</TableCell>
+                          <TableCell>
+                            {getStatusBadge(user.status)}
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(user.registeredAt), "dd.MM.yyyy")}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              {user.status === 'pending' && (
+                                <>
+                                  <Button size="sm" onClick={() => approveUser(user.id)}>
+                                    Kinnita
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => rejectUser(user.id)}>
+                                    Lükka tagasi
+                                  </Button>
+                                </>
                               )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button variant="outline" size="sm" onClick={() => handleSelectUser(user.id)}>
-                                  View
-                                </Button>
-                                <Button size="sm" onClick={() => {
-                                  setSelectedUsers([user.id]);
-                                  openConfirmDialog("approve");
-                                }}>
-                                  Approve
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-4">
-                            No pending users found
+                              <Button size="sm" variant="destructive" onClick={() => deleteUser(user.id)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
-                      )}
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between">
-                <div className="text-sm text-gray-500">
-                  {filteredPendingUsers.length} user(s) pending approval
-                </div>
-                <div className="text-sm text-gray-500">
-                  {selectedUsers.length} selected
-                </div>
-              </CardFooter>
             </Card>
           </TabsContent>
-          
-          <TabsContent value="memberships">
+
+          <TabsContent value="events" className="space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <CardTitle>Invalid Memberships</CardTitle>
-                    <CardDescription>
-                      Manage expired or invalid memberships
-                    </CardDescription>
-                  </div>
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    disabled={selectedMemberships.length === 0}
-                    onClick={() => openConfirmDialog("revoke")}
-                  >
-                    <UserX className="mr-2 h-4 w-4" />
-                    Revoke Access
-                  </Button>
-                </div>
+                <CardTitle className="flex items-center">
+                  <CalendarIcon className="mr-2 h-5 w-5" />
+                  Ürituste Haldamine
+                </CardTitle>
+                <CardDescription>
+                  Hallake üritusi ja nende osalejaid
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="mb-4">
-                  <Input
-                    placeholder="Search by name or national ID..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12">
-                          <Checkbox 
-                            checked={selectedMemberships.length > 0 && selectedMemberships.length === filteredInvalidMemberships.length}
-                            onCheckedChange={handleSelectAllMemberships}
-                          />
-                        </TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>National ID</TableHead>
-                        <TableHead>Expiry Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredInvalidMemberships.length > 0 ? (
-                        filteredInvalidMemberships.map((member) => (
-                          <TableRow key={member.id}>
-                            <TableCell>
-                              <Checkbox 
-                                checked={selectedMemberships.includes(member.id)}
-                                onCheckedChange={() => handleSelectMembership(member.id)}
-                              />
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {member.name}
-                            </TableCell>
-                            <TableCell>{member.nationalId}</TableCell>
-                            <TableCell className="text-red-600">{member.expiryDate}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                Expired
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button variant="outline" size="sm" onClick={() => handleSelectMembership(member.id)}>
-                                  Details
-                                </Button>
-                                <Button variant="destructive" size="sm" onClick={() => {
-                                  setSelectedMemberships([member.id]);
-                                  openConfirmDialog("revoke");
-                                }}>
-                                  Revoke
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-4">
-                            No invalid memberships found
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <div className="text-sm text-gray-500">
-                  {filteredInvalidMemberships.length} invalid membership(s)
-                </div>
-                <div className="text-sm text-gray-500">
-                  {selectedMemberships.length} selected
-                </div>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="events">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <CardTitle>Event Management</CardTitle>
-                    <CardDescription>
-                      Create and manage events, set registration deadlines, and monitor bookings
-                    </CardDescription>
-                  </div>
-                  <Button onClick={() => setCreateEventDialogOpen(true)}>
-                    <CalendarPlus className="mr-2 h-4 w-4" />
-                    Create Event
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="md:col-span-1">
-                    <div className="bg-white border rounded-lg p-4">
-                      <h3 className="font-medium mb-4">Calendar View</h3>
-                      <EventCalendar 
-                        events={allEvents.map(event => ({
-                          id: event.id,
-                          title: event.title,
-                          date: event.date.toISOString(),
-                          registered: event.participants.length > 0,
-                          targetAge: event.targetAge
-                        }))}
-                        onDateSelect={handleDateSelect}
-                        isInteractive={true}
+                <div className="flex flex-col lg:flex-row gap-6">
+                  {/* Filters */}
+                  <div className="lg:w-1/3 space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-2">
+                        Sihtgrupp
+                      </label>
+                      <Select value={targetAgeFilter} onValueChange={setTargetAgeFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Vali sihtgrupp" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Kõik</SelectItem>
+                          <SelectItem value="adults">Täiskasvanud</SelectItem>
+                          <SelectItem value="children">Lapsed</SelectItem>
+                          <SelectItem value="families">Perekonnad</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-2">
+                        Kuupäev
+                      </label>
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        className="border rounded-md"
                       />
                       {selectedDate && (
                         <Button 
                           variant="outline" 
                           size="sm" 
                           className="mt-2 w-full"
-                          onClick={clearSelectedDate}
+                          onClick={clearDate}
                         >
-                          Clear Selected Date
+                          Tühista kuupäev
                         </Button>
                       )}
                     </div>
                   </div>
                   
-                  <div className="md:col-span-2">
-                    <div className="mb-4 flex flex-col md:flex-row gap-3">
-                      <div className="flex-1">
-                        <Input
-                          placeholder="Search events by title, location, or creator..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                      </div>
-                      <Select value={targetAgeFilter} onValueChange={setTargetAgeFilter}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Filter by age group" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Age Groups</SelectItem>
-                          <SelectItem value="adults">Adults</SelectItem>
-                          <SelectItem value="children">Children</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  {/* Events List */}
+                  <div className="lg:w-2/3">
+                    <div className="space-y-4">
+                      {filteredEvents.map((event) => (
+                        <Card key={event.id}>
+                          <CardHeader>
+                            <div className="flex justify-between items-start">
+                              <CardTitle className="text-lg">{event.title}</CardTitle>
+                              <div className="flex space-x-2">
+                                <Button size="sm" variant="outline">
+                                  <Edit className="mr-2 h-3 w-3" />
+                                  Muuda
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => openParticipantsDialog(event)}
+                                >
+                                  <Eye className="mr-2 h-3 w-3" />
+                                  Osalejad
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium">Kuupäev:</span> {format(new Date(event.date), "dd.MM.yyyy")}
+                              </div>
+                              <div>
+                                <span className="font-medium">Koht:</span> {event.location}
+                              </div>
+                              <div>
+                                <span className="font-medium">Sihtgrupp:</span> {event.targetAge}
+                              </div>
+                              <div>
+                                <span className="font-medium">Osalejaid:</span> {event.participants?.length || 0}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
-                    
-                    {filteredEvents.length > 0 ? (
-                      <div className="space-y-6">
-                        <div className="rounded-md border">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Event</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Location</TableHead>
-                                <TableHead>Created By</TableHead>
-                                <TableHead>Age Group</TableHead>
-                                <TableHead>Participants</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {filteredEvents.map((event) => (
-                                <TableRow key={event.id}>
-                                  <TableCell className="font-medium">{event.title}</TableCell>
-                                  <TableCell>{format(event.date, 'MMM d, yyyy')}</TableCell>
-                                  <TableCell>{event.location}</TableCell>
-                                  <TableCell>{event.createdBy}</TableCell>
-                                  <TableCell>{event.targetAge}</TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center">
-                                      <span className="mr-2">{event.participants.length}/{event.maxParticipants}</span>
-                                      <Badge variant={event.participants.length >= event.maxParticipants ? "destructive" : "outline"}>
-                                        {event.participants.length >= event.maxParticipants ? "Full" : "Open"}
-                                      </Badge>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2">
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm"
-                                        onClick={() => openParticipantsDialog(event)}
-                                      >
-                                        <Users className="mr-1 h-4 w-4" />
-                                        Participants
-                                      </Button>
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button size="sm" variant="ghost">⋯</Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                                          <DropdownMenuItem>Edit Event</DropdownMenuItem>
-                                          <DropdownMenuItem className="text-red-600">Cancel Event</DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                          {events.map((event, index) => (
-                            <Card key={index} className="event-card">
-                              <CardHeader className="pb-2">
-                                <CardTitle>{event.title}</CardTitle>
-                                <CardDescription>{format(event.date, "PPP")}</CardDescription>
-                              </CardHeader>
-                              <CardContent className="pb-2">
-                                <p className="text-sm text-gray-500 line-clamp-2">{event.description}</p>
-                                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                                  <div>
-                                    <p className="font-medium">Location</p>
-                                    <p className="text-gray-500">{event.location}</p>
-                                  </div>
-                                  <div>
-                                    <p className="font-medium">Max Participants</p>
-                                    <p className="text-gray-500">{event.maxParticipants}</p>
-                                  </div>
-                                  <div>
-                                    <p className="font-medium">Age Group</p>
-                                    <p className="text-gray-500">{event.targetAge}</p>
-                                  </div>
-                                  <div>
-                                    <p className="font-medium">Registration Deadline</p>
-                                    <p className="text-gray-500">{format(event.registrationDeadline, "PP")}</p>
-                                  </div>
-                                </div>
-                              </CardContent>
-                              <CardFooter>
-                                <div className="flex justify-end w-full gap-2">
-                                  <Button variant="outline" size="sm">Edit</Button>
-                                  <Button variant="destructive" size="sm">Delete</Button>
-                                </div>
-                              </CardFooter>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-center px-4 py-12">
-                        <div className="rounded-full bg-secondary p-3 mb-4">
-                          <Calendar className="h-6 w-6 text-secondary-foreground" />
-                        </div>
-                        <h3 className="text-lg font-medium">No Events Found</h3>
-                        <p className="text-sm text-gray-500 mt-2 max-w-md">
-                          {selectedDate 
-                            ? `No events found for ${format(selectedDate, "MMMM d, yyyy")}. Try selecting a different date.` 
-                            : "Create your first event by clicking the \"Create Event\" button above."}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="volunteers">
-            <VolunteerManagement />
+          <TabsContent value="reports" className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Kokku Kasutajaid</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{users.length}</div>
+                  <p className="text-gray-600">Registreeritud kasutajat</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Aktiivsed Üritused</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{events.length}</div>
+                  <p className="text-gray-600">Planeeritud üritust</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Perekonnaliikmed</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{familyMembers.length}</div>
+                  <p className="text-gray-600">Registreeritud liiget</p>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
-          <TabsContent value="reporting">
-            <ReportingView />
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Settings className="mr-2 h-5 w-5" />
+                  Süsteemi Seaded
+                </CardTitle>
+                <CardDescription>
+                  Konfigureerige süsteemi üldsätteid
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Organisatsiooni nimi
+                  </label>
+                  <Input 
+                    value="MTÜ Tartu Pereliit" 
+                    className="mt-1"
+                    readOnly
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Maksimaalne registreerimiste arv ürituse kohta
+                  </label>
+                  <Input 
+                    type="number"
+                    defaultValue="50" 
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Automaatne kinnitamine
+                  </label>
+                  <Select defaultValue="manual">
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual">Käsitsi kinnitamine</SelectItem>
+                      <SelectItem value="auto">Automaatne kinnitamine</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Button>Salvesta Seaded</Button>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Confirmation Dialog */}
-      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {confirmAction === "approve" ? (
-                <>
-                  <UserCheck className="h-5 w-5 text-primary" />
-                  Approve Selected Users
-                </>
-              ) : confirmAction === "reject" ? (
-                <>
-                  <UserX className="h-5 w-5 text-destructive" />
-                  Reject Selected Users
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="h-5 w-5 text-destructive" />
-                  Revoke Access
-                </>
-              )}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmAction === "approve"
-                ? "Are you sure you want to approve these users? This will grant them access to the platform."
-                : confirmAction === "reject"
-                ? "Are you sure you want to reject these users? This will remove their registration request."
-                : "Are you sure you want to revoke access for these users? They will no longer be able to access the platform."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant={confirmAction === "approve" ? "default" : "destructive"}
-              onClick={handleConfirmAction}
-            >
-              {confirmAction === "approve"
-                ? "Approve"
-                : confirmAction === "reject"
-                ? "Reject"
-                : "Revoke Access"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Event Dialog */}
-      <Dialog open={createEventDialogOpen} onOpenChange={setCreateEventDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CalendarPlus className="h-5 w-5 text-primary" />
-              Create New Event
-            </DialogTitle>
-            <DialogDescription>
-              Fill in the details below to create a new event.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmitEvent)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Event Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter event title" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Describe the event" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Event Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Event location" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="registrationDeadline"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Registration Deadline</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="unregistrationDeadline"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unregistration Deadline</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="maxParticipants"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Maximum Participants</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="targetAge"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Target Age Group</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select age group" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="All Ages">All Ages</SelectItem>
-                          <SelectItem value="Adults">Adults</SelectItem>
-                          <SelectItem value="Seniors">Seniors</SelectItem>
-                          <SelectItem value="Young Adults">Young Adults</SelectItem>
-                          <SelectItem value="Teenagers">Teenagers</SelectItem>
-                          <SelectItem value="Children 5-12">Children 5-12</SelectItem>
-                          <SelectItem value="Children under 5">Children under 5</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <DialogFooter className="pt-4">
-                <Button type="submit">Create Event</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
       {/* Participants Dialog */}
       <Dialog open={participantsDialogOpen} onOpenChange={setParticipantsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              {selectedEvent && `Manage Participants: ${selectedEvent.title}`}
-            </DialogTitle>
+            <DialogTitle>Ürituse Osalejad</DialogTitle>
             <DialogDescription>
-              Add or remove participants for this event.
+              {selectedEvent && `${selectedEvent.title} - ${format(new Date(selectedEvent.date), "dd.MM.yyyy")}`}
             </DialogDescription>
           </DialogHeader>
+          
           {selectedEvent && (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-4 md:flex-row md:items-end">
-                <div className="flex-1">
-                  <Label htmlFor="member">Add Participant</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Add Participant */}
+              <div>
+                <h3 className="text-lg font-medium mb-4">Lisa Osaleja</h3>
+                <div className="space-y-4">
                   <Select value={selectedMember} onValueChange={setSelectedMember}>
-                    <SelectTrigger id="member" className="w-full">
-                      <SelectValue placeholder="Select a member" />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Vali pereliige" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableMembers.map(member => (
+                      {availableMembers.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
-                          {member.name} ({member.nationalId})
+                          {member.firstName} {member.lastName}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  
+                  <Button 
+                    onClick={addParticipant}
+                    disabled={!selectedMember}
+                    className="w-full"
+                  >
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Lisa Osaleja
+                  </Button>
                 </div>
-                <Button 
-                  onClick={addParticipant} 
-                  disabled={!selectedMember}
-                  className="md:mb-0"
-                >
-                  Add to Event
-                </Button>
               </div>
               
-              <div className="border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>National ID</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedEvent.participants.length > 0 ? (
-                      selectedEvent.participants.map((participant: any) => (
-                        <TableRow key={participant.id}>
-                          <TableCell className="font-medium">{participant.name}</TableCell>
-                          <TableCell>{participant.nationalId}</TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => removeParticipant(participant.id)}
-                            >
-                              Remove
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center py-4">
-                          No participants registered yet
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  {selectedEvent.participants.length} / {selectedEvent.maxParticipants} participants
+              {/* Current Participants */}
+              <div>
+                <h3 className="text-lg font-medium mb-4">Praegused Osalejad</h3>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {selectedEvent.participants && selectedEvent.participants.length > 0 ? (
+                    selectedEvent.participants.map((participant: any) => (
+                      <div key={participant.id} className="flex justify-between items-center p-2 border rounded">
+                        <span>{participant.firstName} {participant.lastName}</span>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => removeParticipant(participant.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">Osalejaid pole</p>
+                  )}
                 </div>
-                <Button variant="outline" onClick={() => setParticipantsDialogOpen(false)}>
-                  Close
-                </Button>
               </div>
             </div>
           )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setParticipantsDialogOpen(false)}>
+              Sulge
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </MainLayout>
